@@ -9,6 +9,7 @@ import argparse
 from   functools import total_ordering
 import math
 import platform
+import resource
 import time
 
 from   gkfdecorators import show_exceptions_and_frames as trap
@@ -119,7 +120,7 @@ def find_words(phrase:str,
         remainder = phrase - k
         
         if str(remainder) in r_dict:
-            matches[k] = remainder
+            matches[k] = remainder.as_str
         else:
             matches[k] = find_words(remainder, f_dict, r_dict, min_len)
 
@@ -135,6 +136,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     returns -- an int from os.EX_*
     """
+
+    resource.setrlimit(resource.RLIMIT_CPU, (myargs.cpu, myargs.cpu))
 
     original_phrase = "".join(myargs.phrase.lower().split())
     original_phrase_XF = CountedWord(original_phrase)
@@ -163,16 +166,16 @@ if __name__ == "__main__":
         description="A brute force anagram finder.")
     parser.add_argument('-v', '--verbose', action='store_true',
         help="Be chatty about what is taking place.")
+    parser.add_argument('--cpu', type=float, default=5.0,
+        help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('--min-len', type=int, default=3,
         help="Minimum length of any word in the anagram")
     parser.add_argument('--max-depth', type=int, default=4, 
         help="Maximum number of words in the anagram.")
     parser.add_argument('phrase', type=str, 
-        help="The phrase we are trying to anagram. If it contains spaces, it must be in quotes.")
+        help="The phrase. If it contains spaces, it must be in quotes.")
     parser.add_argument('--dictionary', type=str, required=True,
         help="Name of the dictionary of words, or a pickle of the dictionary.")
-    parser.add_argument('--limit', type=int, default=sys.maxsize, 
-        help="Primarily for testing to prevent runaway, or just for demonstration.")
 
     myargs = parser.parse_args()
     if myargs.verbose: myargs.limit = 100

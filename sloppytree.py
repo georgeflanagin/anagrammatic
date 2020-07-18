@@ -65,7 +65,7 @@ class SloppyTree(dict):
         return self
 
 
-    def __format__(self) -> str:
+    def __str__(self) -> str:
         """
         Printing one of these things requires a bit of finesse.
         """
