@@ -77,7 +77,7 @@ class CountedWord(Counter):
         """ 
         if CountedWord(w1) == CountedWord(w2), then w1 and w2 are
         anagrams of each other.  For example CountedWord('loaf') ==
-        CountedWord('foal'). Let's check the length first.  
+        CountedWord('foal').
         """
         if isinstance(other, str): other = CountedWord(other)
         return self.as_str == other.as_str
