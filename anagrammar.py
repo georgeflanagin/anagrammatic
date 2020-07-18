@@ -48,6 +48,7 @@ def time_print(s:str) -> None:
 limit = sys.maxsize
 vvv = False
 
+
 @trap
 def prune_dicts(filter:str, 
     forward_dict:dict, 
@@ -106,6 +107,7 @@ def find_words(phrase:str,
     """
 
     global vvv
+    global seen
 
     if len(phrase) < min_len: 
         return None
@@ -120,9 +122,11 @@ def find_words(phrase:str,
         remainder = phrase - k
         
         if str(remainder) in r_dict:
-            matches[k] = remainder.as_str
+            matches[k] = remainder.as_str if len(k) >= len(remainder.as_str) else None
         else:
             matches[k] = find_words(remainder, f_dict, r_dict, min_len)
+
+        if matches[k] is None: del matches[k]
 
     return matches if len(matches) else None
 
@@ -156,6 +160,9 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     anagrams = find_words(original_phrase, words, XF_words, min_len)
     print(f"{anagrams}")
+
+    for i, k in enumerate(sorted(list(anagrams.keys()))):
+        print(f"{i}:{k} -> {XF_words[k]}")
 
     return sys.exit(os.EX_OK)
 
