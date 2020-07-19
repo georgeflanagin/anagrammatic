@@ -51,42 +51,6 @@ seen = set()
 
 
 @trap
-def prune_dicts(filter:str, 
-    forward_dict:dict, 
-    reversed_dict:dict, 
-    minlen:int=0) -> tuple:
-    """
-    Apply the filter to the dictionaries, and return a tuple of
-        filtered (smaller) dictionaries.
-    """
-    filter_XF = CountedWord(filter)
-
-    ###
-    # The reversed dict gets all the key/word combos that could 
-    # be part of anagrams of the filter.
-    ###
-    filtered_reversed_dict = { k : v for 
-        k, v in reversed_dict.items() 
-        if len(k) > minlen and CountedWord(k) <= filter_XF }
-
-    ###
-    # With the forward filtering, we start with the contents
-    # of the reversed dict, pull out the words from the tuples,
-    # make them the keys, and use the common key as the value for
-    # each word.
-    ###
-    filtered_forward_dict = {}
-    for word_tuple in filtered_reversed_dict.values():
-        for word in word_tuple:
-            filtered_forward_dict[word] = forward_dict[word]
-
-    # print(f"forward {filtered_forward_dict}")
-    # print(f"reversed {filtered_reversed_dict}")
-        
-    return filtered_forward_dict, filtered_reversed_dict
-
-
-@trap
 def find_words(phrase:str, 
     forward_dict:dict, 
     reversed_dict:dict, 
@@ -124,13 +88,66 @@ def find_words(phrase:str,
         
         if str(remainder) in r_dict:
             matches[k] = remainder.as_str if len(k) >= len(remainder.as_str) else None
-            seen.add(matches[k])
+            seen.add(remainder.as_str)
         else:
             matches[k] = find_words(remainder, f_dict, r_dict, min_len)
 
         if matches[k] is None: del matches[k]
 
     return matches if len(matches) else None
+
+
+@trap
+def prune_dicts(filter:str, 
+    forward_dict:dict, 
+    reversed_dict:dict, 
+    minlen:int=0) -> tuple:
+    """
+    Apply the filter to the dictionaries, and return a tuple of
+        filtered (smaller) dictionaries.
+    """
+    filter_XF = CountedWord(filter)
+
+    ###
+    # The reversed dict gets all the key/word combos that could 
+    # be part of anagrams of the filter.
+    ###
+    filtered_reversed_dict = { k : v for 
+        k, v in reversed_dict.items() 
+        if len(k) > minlen and CountedWord(k) <= filter_XF }
+
+    ###
+    # With the forward filtering, we start with the contents
+    # of the reversed dict, pull out the words from the tuples,
+    # make them the keys, and use the common key as the value for
+    # each word.
+    ###
+    filtered_forward_dict = {}
+    for word_tuple in filtered_reversed_dict.values():
+        for word in word_tuple:
+            filtered_forward_dict[word] = forward_dict[word]
+
+    # print(f"forward {filtered_forward_dict}")
+    # print(f"reversed {filtered_reversed_dict}")
+        
+    return filtered_forward_dict, filtered_reversed_dict
+
+
+@trap
+def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
+    """
+    Replace the sorted strings that we have been using in the anagrammar with
+    the tuples of words that can be formed from the sorted string. Tuples
+    are hashable, so they can be used as keys
+    """
+    new_tree = SloppyTree()
+
+    if not isinstance(t, SloppyTree): return replacements[t]    
+
+    for k in t:
+        new_tree[replacements[k]] = replace_XF_keys(t[k], replacements)
+
+    return new_tree
 
 
 @trap
@@ -161,10 +178,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     print(f"Initial pruning gives {len(words)} forward and {len(XF_words)} reversed terms.")
 
     anagrams = find_words(original_phrase, words, XF_words, min_len)
+    anagrams = replace_XF_keys(anagrams, XF_words)
     print(f"{anagrams}")
-
-    for i, k in enumerate(sorted(list(anagrams.keys()))):
-        print(f"{i}:{k} -> {XF_words[k]}")
 
     return sys.exit(os.EX_OK)
 

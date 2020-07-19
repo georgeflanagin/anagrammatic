@@ -70,7 +70,3 @@ class SloppyTree(dict):
         Printing one of these things requires a bit of finesse.
         """
         return pprint.pformat(self, indent=4, width=100)
-
-
-    def prune(self) -> None:
-        pass
