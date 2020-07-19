@@ -26,33 +26,6 @@ __maintainer__ = 'George Flanagin'
 __email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 
-this_os = platform.system()
-if this_os == 'Linux':
-    default_word_list = '/usr/share/dict/linux.words'
-elif this_os == 'Darwin':
-    default_word_list = '/usr/share/dict/words'
-else:
-    default_word_list = './words'
-
-
-# Just for curiosity, I wonder how long these things take.
-start_time = time.time()
-def time_print(s:str) -> None:
-    print("{} : {}".format(round(time.time()-start_time, 3), s))
-
-two_letter_words = frozenset({
-    'am', 'an', 'as', 'at', 'be', 'by', 'do', 'go',
-    'he', 'if', 'in', 'is', 'it', 'me', 'my', 'no',
-    'of', 'om', 'on', 'or', 'ox', 'pi', 'so', 'to',
-    'up', 'us', 'we'
-    })
-
-
-# This is a global hash table of all the words with have explored
-# so that we don't run through them more than once.
-examined_words = set()
-limit = sys.maxsize
-
 class CountedWord: pass
 
 @total_ordering

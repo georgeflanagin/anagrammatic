@@ -47,6 +47,7 @@ def time_print(s:str) -> None:
 
 limit = sys.maxsize
 vvv = False
+seen = set()
 
 
 @trap
@@ -109,20 +110,21 @@ def find_words(phrase:str,
     global vvv
     global seen
 
-    if len(phrase) < min_len: 
+    if len(phrase) < min_len * 2: 
         return None
 
     matches = SloppyTree()
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
-    keys_by_size = sorted(r_dict.keys(), key=len, reverse=True)
+    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in seen ]
 
     for i, k in enumerate(keys_by_size):
         remainder = phrase - k
         
         if str(remainder) in r_dict:
             matches[k] = remainder.as_str if len(k) >= len(remainder.as_str) else None
+            seen.add(matches[k])
         else:
             matches[k] = find_words(remainder, f_dict, r_dict, min_len)
 

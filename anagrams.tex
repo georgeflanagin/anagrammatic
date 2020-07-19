@@ -48,23 +48,21 @@ some point in history.}{Donald E. Knuth, 2011\\\emph{Combinatorial
 Algorithms, Part 1}, p. 519\\answer to Problem 25 in Section 7}
 
 \subsection{Definitions}
-My interest in anagrams started fairly late in life. An episode of
+My interest in anagrams started late in life. An episode of
 \emph{The Simpsons} named ``Lisa's Rival'' aired 11 September 1994,
-and in it Lisa goes to house of a new girl in the school, Allison
+and in it Lisa goes to visit a new girl in the school, Allison
 Taylor. At Allison's house, Lisa is asked to join the Taylors in a
 specialized game of anagrams in which the names of famous people
 are rearranged to form descriptive anagrams: \emph{Alec Guinness}
-becomes \emph{genuine class}.  Lisa was overwhelmed.
+becomes \emph{genuine class} in the example.  Lisa was overwhelmed.
 
 To avoid offending or upsetting readers, I will be using my own
 name as the basis for the examples in this paper. Mercifully for
 the contruction of examples, my name consists only of common letters
-in English, and it has a useful proportion of vowels. Throughout
-this paper, we will call the original phrase for which we seek
-anagrams the \emph{target phrase}, or just the \emph{target}.
+in English, and it has a useful proportion of vowels. Let's call
+the starting point the \emph{target phrase}, or just the \emph{target}.
 
-To begin, we must have a definition of an anagram. The always used
-preposition \emph{of} features in our definition, because anagrams
+To begin, we must have a definition of an anagram. Anagrams
 always appear in pairs.  It makes no sense to say ``\emph{George
 Flanagin} is an anagram," without stating its partner phrase, the
 most descriptive of which may be \emph{long fearing age}. 
@@ -105,7 +103,7 @@ At first, the search seems terribly complicated, and it is certainly
 not trivial. Everyone who has dealt with combinatorics knows how
 quickly the the number of subsets grows, $16383$ in the case of
 fourteen letters, and the number of partitions, the fourteenth Bell
-number, is $27644437$.\footnote{The Bell numbers are OEIS sequence
+number, is $27,644,437$.\footnote{The Bell numbers are OEIS sequence
 A000110, \lit{https://oeis.org/A000110}}
 
 The constraint is the dictionary. The largest one generally used
@@ -212,17 +210,15 @@ such that \Dpp $\subset$ \Dp $\subset$ \D, in other words, a filter.\\
 \label{fig:anagramsymbols}
 \end{figure}
 
+\begin{samepage}
 \section{Notation}
-\quickquote{The number of systems of terminology presently used in
-graph theory is equal to a close approximation of the number of
-graph theorists.}{Richard P. Stanley\\\emph{Enumerative
-Combinatorics}\\Cambridge University Press, 1986}
 
 Anagrams suffer from their essence being relatively easy to state
 in English, yet having no obvious representation in symbols. Given
 that programming languages are a type of symbolic representation,
 we will benefit from having a strong symbolic notation for anagrams,
 their parts, and their construction.
+\end{samepage}
 
 In Figure~\ref{fig:anagramsymbols} we can see the basic notation
 that is invented for the purpose of this discussion. The other
@@ -254,6 +250,7 @@ have been found, and avoid searching the same path twice.
 In fact, these operations lead us directly to a discussion of the 
 algorithm to find all anagrams. 
 
+\newpage
 \section{Algorithm}
 
 \quickquote{Homer Jay, how do you keep your hair so rich and full?\\
@@ -348,11 +345,12 @@ completion (\ie dead ends) we can saw these to the ground, and
 experience has shown that dead ends will constitute the majority
 of the \aw terms we try.
 
+\newpage
 \section{Programming}
 
 This paper is being written in 2020, so the programming is definitely
-done using Python~3. At this time, I am using Python 3.8, although
-I do not think any of the features that first appear in Python 3.8
+done using Python~3. At this time, I am using Python~3.8, although
+I do not think any of the features that first appear in Python~3.8
 (such as the ``walrus operator,'' \lit{:=} ) are used in the code
 that appears here.
 
@@ -363,71 +361,55 @@ in the project. With that warning, let's get started.
 
 \subsection{Style of the dictionary}
 
-The familiar \verb|/usr/share/dict/linux.words| file has a number
-of entries we do not need. There are words with punctuation, and
-acronyms that are all caps. I have chosen to eliminate a large
-number of the dictionary entries by reading it this way which rids
-us of duplicates, capital letters, and punctuation all at once:
+The familiar \verb|/usr/share/dict/linux.words| file is based on the
+Webster's Second International Dictionary. It has a number
+of entries we do not need as its primary use is in spell-check. 
+There are words with punctuation, and
+acronyms that are all caps. Additionally, it has $1420$ words of three
+letters, $25199$ words that start with a capital letter, and with 10230
+words of five letters, it far exceeds Knuth's well established list
+of $5757$ five letter words that is a corpus in the Stanford University
+Graph Base.\footnote{\lit{https://www-cs-faculty.stanford.edu/$\sim$knuth/sgb.html}
+Both the page and Knuth's book are well worth exploring.}
 
-\begin{samepage}
-\begin{quote}
-\small
-\begin{verbatim}
-with open(dictionary_name, 'r') as infile:
-    dictionary_words = set([ _ for _ in 
-        [ w.lower() for w in infile.read().split() if w.isalpha() ] 
-        ])
-\end{verbatim}
-\end{quote}
-\end{samepage}
+If you turn your attention to \lit{dictbuilder.py} you can get a
+feel for the approach taken to support anagrams. I have chosen to
+eliminate a large number of the dictionary entries by reading it
+this way which rids us of duplicates, capital letters, and punctuation
+all at once, and I have chosen to supply an explicit list of $27$
+two letter words rather than the $160$ in the dictionary. Feel
+free to adjust the code to suit your use.
 
-There is no need to re-read it with each execution of a search
-operation because we can build the type of dictionaries we need,
-and save them to disc as \lit{pickle} files that are ready to use.
-As a consequence of this ``once through'' operation, there is no
-need to optimize the code by which we eliminate the duplicates.
-
-A more interesting and consequential decision is choosing the
-organization of the dictionaries. I refer to \emph{dictionaries}
-rather than \emph{dictionary} because we need two:
+\lit{dictbuilder} creates two dictionaries.
 
 \begin{enumerate}
 \item a \lit{dict} (dictionary) whose keys are the words we have
 in some way read from the dictionary file, and whose values are the
 sorted strings of the letters in the word.
 
-\begin{samepage}
-\begin{quote}
-\small
-\begin{verbatim}
-words = ('foal', 'loaf')
-sorted_word = 'aflo'
-d = { words[0] : sorted_word, words[1] : sorted_word }
-\end{verbatim}
-\end{quote}
-\end{samepage}
+$$w \longrightarrow \overrightarrow{w}$$
 
-
+Rather arbitrarily, this is termed the \emph{forward dictionary},
+and in the code dictionaries of this type are usually referred
+to by the sybolic name \verb|f_dict|.
 
 \item a \lit{dict} whose keys are the sorted strings from above,
 and whose values are a set$\slash$tuple of all the words from the
 dictionary that can be made from this string of letters.
 
-\begin{samepage}
-\begin{quote}
-\small
-\begin{verbatim}
-d_reversed = { sorted_word : words }
-\end{verbatim}
-\end{quote}
-\end{samepage}
+$$\overrightarrow{w} \longrightarrow (w_0, w_1, w_2, .. w_n)$$
 
-\end{enumerate} 
+This is termed the \emph{reverse dictionary}, and it is associated
+with the symbolic name \verb|r_dict|.
+
+\end{enumerate}
 
 From the standpoint of use in dictionaries, it is required that
 both the keys and values be hashable, because the values become the
 keys in the reversed dictionary. Consequently, we cannot use a
-sorted list of letters; it must be a string.
+sorted \lit{list} of letters; it must be a \lit{str} or a \lit{tuple}.
+Ordinary strings are the most convenient, particularly when 
+printing the results.
 
 
 \subsection{Going from words to sorted strings}
