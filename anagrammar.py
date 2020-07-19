@@ -88,6 +88,7 @@ def find_words(phrase:str,
         
         if str(remainder) in r_dict:
             matches[k] = remainder.as_str if len(k) >= len(remainder.as_str) else None
+            if remainder.as_str in matches: matches[k] = None
             seen.add(k)
             seen.add(remainder.as_str)
         else:
