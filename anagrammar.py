@@ -45,9 +45,23 @@ start_time = time.time()
 def time_print(s:str) -> None:
     print("{} : {}".format(round(time.time()-start_time, 3), s))
 
-limit = sys.maxsize
-vvv = False
+# So we don't waste our time examining things twice.
 seen = set()
+
+
+def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
+    """
+    Print the command line arguments as they would have been if the user
+    had specified every possible one (including optionals and defaults).
+    """
+
+    if not return_it: print("")
+    opt_string = ""
+    for _ in sorted(vars(args).items()):
+        opt_string += " --"+ _[0].replace("_","-") + " " + str(_[1])
+    if not return_it: print(opt_string + "\n")
+
+    return opt_string if return_it else ""
 
 
 @trap
@@ -68,12 +82,13 @@ def find_words(phrase:str,
 
     returns -- a SloppyTree whose keys are the qualifying keys from
         the reverse_dict. The values are either a SloppyTree containing
-        keys, or None.
+        keys, or None, never an empty SloppyTree.
     """
 
-    global vvv
     global seen
 
+    # For us to consider the parts, the phrase must be long enough to
+    # be broken into parts.
     if len(phrase) < min_len * 2: 
         return None
 
@@ -166,7 +181,6 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     original_phrase = "".join(myargs.phrase.lower().split())
     original_phrase_XF = CountedWord(original_phrase)
-    vvv = myargs.verbose
     min_len  = myargs.min_len
 
     # We cannot work without a dictionary, so let's get it first.
@@ -177,7 +191,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # delete the plenum dictionaries by letting them go out of scope.
     ###
     words, XF_words = prune_dicts(original_phrase, words, XF_words, myargs.min_len)
-    print(f"Initial pruning gives {len(words)} forward and {len(XF_words)} reversed terms.")
+    print(f"Initial pruning: {len(XF_words)} keys representing {len(words)} words.")
 
     anagrams = find_words(original_phrase, words, XF_words, min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
@@ -204,6 +218,6 @@ if __name__ == "__main__":
         help="Name of the dictionary of words, or a pickle of the dictionary.")
 
     myargs = parser.parse_args()
-    if myargs.verbose: myargs.limit = 100
+    dump_cmdline(myargs)
 
     sys.exit(anagrammar_main(myargs))
