@@ -66,15 +66,15 @@ of the target phrase, `githubisgreat`. In the example, there are
 
 ### Trivia Q & A.
 
-#### ... put those operators in the CountedWord class?
+#### Why did you put those operators in the CountedWord class?
 
 I wrote C++ for years before I switched to Python in 2014 and
 regained my sanity. I experienced a flashback.
 
-#### ... have operators you in the CountedWord class that you don't use?
+#### Why do you have operators you in the CountedWord class that you don't use?
 
 Yes, I know they are there. Time will tell whether they become
-useful. I needed to get some sleep, so there are a few loose ends.
+useful. There are loose ends.
 
 #### Why are the dictionaries saved as pickles? That limits their use to Python. 
 
@@ -84,13 +84,12 @@ this. There are only about 100 lines of code that do the work.
 
 #### Why did you not follow PEP-8 exactly? Your style is terrible. 
 
-OK, first I have heard worse, and I have committed bigger sins. A
-friend once described my programming as "entirely adequate." A
+OK, first I have heard worse and I have committed bigger sins. My best 
+professional friend once described my programming as "entirely adequate." A
 written performance review once included the words "the only thing
-George knows how to do is write a compiler." I suppose each statement
-is still true.
+George knows how to do is write a compiler."
 
 If it bothers you, you can experiment with
 [AutoPEP8](https://pypi.org/project/autopep8/0.8/).  It is excellent;
-I am just lazy.
+I do not worry about these kinds of things until the end of a project.
 
