@@ -36,6 +36,7 @@ __version__ = str(1/math.pi)
 __maintainer__ = 'George Flanagin'
 __email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
+__license__ = 'MIT'
 
 ###
 # Just for curiosity, I wonder how long these things take.

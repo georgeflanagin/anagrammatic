@@ -32,6 +32,7 @@ __version__ = '0.1'
 __maintainer__ = 'George Flanagin'
 __email__ = 'me@georgeflanagin.com'
 __status__ = 'Production'
+__license__ = 'MIT'
 
 
 def null_decorator(o:object) -> object:
