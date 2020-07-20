@@ -46,7 +46,7 @@ Windows is a BYODictionary experience.
 
 ## How about an example?
 
-`
+```bash
 python anagrammar.py --dictionary words --min-len 3 githubisgreat >x.out
 
 Initial pruning: 493 keys representing 789 words.
@@ -56,7 +56,7 @@ Initial pruning: 493 keys representing 789 words.
    5100   2.18   0.05   32675       0      3    319
 
 5117 keys tried.
-`
+```
 
 At the end of these 2.18+ seconds, `x.out` will contain a printed
 tree in which each path from the root node to a leaf is an anagram
