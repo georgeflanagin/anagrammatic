@@ -49,13 +49,13 @@ Windows is a BYODictionary experience.
 ```bash
 python anagrammar.py --dictionary words --min-len 3 githubisgreat >x.out
 
-Initial pruning: 493 keys representing 789 words.
 
+Initial pruning: 493 keys representing 789 words.
   tree | user |  sys | faults |  I/O  | WAIT | USEDQ|
 ------------------------------------------------------------
-   5100   2.18   0.05   32675       0      3    319
+   5100   2.17   0.05   34152       0      3    381
 
-5117 keys tried.
+5117 branches in the tree. 9246 dead ends.
 ```
 
 At the end of these 2.18+ seconds, `x.out` will contain a printed

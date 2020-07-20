@@ -48,6 +48,7 @@ def time_print(s:str) -> None:
 seen = set()
 vvv = False
 tries = 0
+deadends = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="  tree | user |  sys | faults |  I/O  | WAIT | USEDQ|" 
@@ -95,7 +96,9 @@ def find_words(phrase:str,
     min_len:int=0) -> SloppyTree:
     """
     Our formula. This is a recursive function to discover the 
-    anagrams. 
+    anagrams. It starts by considering the longest possible word
+    that could be a part of an anagram for the target phrase, and
+    progressively considers shorter keys. 
 
     phrase -- the string for which we are trying to find anagrams.
     forward_dict -- keys are dictionary words, and values are the same
@@ -112,10 +115,12 @@ def find_words(phrase:str,
     global seen
     global vvv
     global tries
+    global deadends
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
     if len(phrase) < min_len * 2: 
+        deadends += 1
         return None
 
     matches = SloppyTree()
@@ -137,7 +142,9 @@ def find_words(phrase:str,
         else:
             matches[k] = find_words(remainder, f_dict, r_dict, min_len)
 
-        if matches[k] is None: del matches[k]
+        if matches[k] is None: 
+            deadends += 1
+            del matches[k]
 
     return matches if len(matches) else None
 
@@ -207,6 +214,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     global vvv
     global tries
     global topline
+    global deadends
     vvv = myargs.verbose
 
     # If we have been given a limit on CPU, set it.
@@ -250,7 +258,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     print(60*'-', file=sys.stderr)
     anagrams = find_words(original_phrase, words, XF_words, min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
-    print(f"\n\n{tries} keys tried.", file=sys.stderr)
+    print(f"\n\n{tries} branches in the tree. {deadends} dead ends.", file=sys.stderr)
     print(f"{anagrams}")
 
     return sys.exit(os.EX_OK)
