@@ -2,6 +2,10 @@
 import typing
 from   typing import *
 
+###
+# Standard imports.
+###
+
 import os
 import sys
 
@@ -12,11 +16,15 @@ import platform
 import resource
 import time
 
+###
+# Parts of this project.
+###
+
 from   gkfdecorators import show_exceptions_and_frames as trap
 import anagramwords
-from   anagramwords import CountedWord
-from   dictbuilder import dictbuilder, dictloader
-from   sloppytree import SloppyTree
+from   anagramwords  import CountedWord
+from   dictbuilder   import dictbuilder, dictloader
+from   sloppytree    import SloppyTree
 
 ###
 # Credits
@@ -29,15 +37,6 @@ __maintainer__ = 'George Flanagin'
 __email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 
-this_os = platform.system()
-if this_os == 'Linux':
-    default_word_list = '/usr/share/dict/linux.words'
-elif this_os == 'Darwin':
-    default_word_list = '/usr/share/dict/words'
-else:
-    default_word_list = './words'
-
-
 ###
 # Just for curiosity, I wonder how long these things take.
 ###
@@ -47,8 +46,33 @@ def time_print(s:str) -> None:
 
 # So we don't waste our time examining things twice.
 seen = set()
+vvv = False
+tries = 0
 
+"""        0123456789 123456789 123456789 123456789 123456789 """
+top_line ="  tree | user |  sys | faults |  I/O  | WAIT | USEDQ|" 
+formatter="{: >7} {: >6.2f} {: >6.2f} {:> 7} {: >7} {:>6} {:>6}"
 
+@trap
+def stats() -> None:
+    global tries
+    global formatter
+
+    info = resource.getrusage(resource.RUSAGE_SELF)
+    print(formatter.format(
+        tries,
+        info[0],    # user mode time in seconds.
+        info[1],    # system mode time in seconds.
+        info[6],    # page faults not requiring I/O
+        info[7],    # page faults that do require I/O
+        info[14],   # giving up time
+        info[15]    # USEDQ, pre-emptive reschedule.
+        ),  end="\r", file=sys.stderr)
+    
+    
+    
+
+@trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     """
     Print the command line arguments as they would have been if the user
@@ -59,7 +83,7 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     opt_string = ""
     for _ in sorted(vars(args).items()):
         opt_string += " --"+ _[0].replace("_","-") + " " + str(_[1])
-    if not return_it: print(opt_string + "\n")
+    if not return_it: print(opt_string + "\n", file=sys.stderr)
 
     return opt_string if return_it else ""
 
@@ -86,6 +110,8 @@ def find_words(phrase:str,
     """
 
     global seen
+    global vvv
+    global tries
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
@@ -99,6 +125,8 @@ def find_words(phrase:str,
     keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in seen ]
 
     for i, k in enumerate(keys_by_size):
+        tries += 1
+        if not tries%100: stats() 
         remainder = phrase - k
         
         if str(remainder) in r_dict:
@@ -176,25 +204,53 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     returns -- an int from os.EX_*
     """
+    global vvv
+    global tries
+    global topline
+    vvv = myargs.verbose
 
-    resource.setrlimit(resource.RLIMIT_CPU, (myargs.cpu, myargs.cpu))
+    # If we have been given a limit on CPU, set it.
+    if myargs.cpu > 0: resource.setrlimit(resource.RLIMIT_CPU, (myargs.cpu, myargs.cpu))
+    # Always be nice. Each level of niceness lowers the priority
+    # by 10%, so this will roughly cut the CPU proportion to about 1/2
+    # of what it was.
+    os.nice(7)
 
-    original_phrase = "".join(myargs.phrase.lower().split())
+    original_words = myargs.phrase.lower().split()
+    original_phrase = "".join(original_words)
     original_phrase_XF = CountedWord(original_phrase)
     min_len  = myargs.min_len
 
     # We cannot work without a dictionary, so let's get it first.
     words, XF_words = dictloader(myargs.dictionary)
 
+    # We probably do not want to use any of the words that were in
+    # the original phrase.
+    if myargs.no_dups:
+        for w in original_words:
+            k = words.get(w)     # Get the corresponding XF_word
+            if k is None: continue
+
+            t = words_XF[k]  # Get the tuple.
+            t = tuple(_ for _ in t if _ != w) # Build a new tuple.
+            if len(t):
+                words_XF[k] = t
+            else:
+                words_XF.pop(k)
+
     ###
     # We will make an initial pruning of the dictionaries, and then
     # delete the plenum dictionaries by letting them go out of scope.
     ###
     words, XF_words = prune_dicts(original_phrase, words, XF_words, myargs.min_len)
-    print(f"Initial pruning: {len(XF_words)} keys representing {len(words)} words.")
+    print(f"Initial pruning: {len(XF_words)} keys representing {len(words)} words.", 
+        file=sys.stderr)
 
+    print(f"{top_line}", file=sys.stderr)
+    print(60*'-', file=sys.stderr)
     anagrams = find_words(original_phrase, words, XF_words, min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
+    print(f"\n\n{tries} keys tried.", file=sys.stderr)
     print(f"{anagrams}")
 
     return sys.exit(os.EX_OK)
@@ -204,14 +260,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
+
     parser.add_argument('-v', '--verbose', action='store_true',
         help="Be chatty about what is taking place.")
-    parser.add_argument('--cpu', type=float, default=5.0,
+    parser.add_argument('--cpu', type=float, default=0,
         help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('--min-len', type=int, default=3,
         help="Minimum length of any word in the anagram")
-    parser.add_argument('--max-depth', type=int, default=4, 
-        help="Maximum number of words in the anagram.")
+    parser.add_argument('--no-dups', action='store_true',
+        help="Disallow words that were in the original phrase.")
     parser.add_argument('phrase', type=str, 
         help="The phrase. If it contains spaces, it must be in quotes.")
     parser.add_argument('--dictionary', type=str, required=True,

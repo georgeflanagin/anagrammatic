@@ -10,6 +10,7 @@ import collections
 from   collections import defaultdict
 import gc
 import math
+import platform
 import pickle
 import time
 
@@ -23,6 +24,18 @@ __version__ = str(1/math.pi)
 __maintainer__ = 'George Flanagin'
 __email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
+
+
+
+this_os = platform.system()
+if this_os == 'Linux':
+    default_word_list = '/usr/share/dict/linux.words'
+elif this_os == 'Darwin':
+    default_word_list = '/usr/share/dict/words'
+else:
+    default_word_list = './words'
+
+
 
 two_letter_words = frozenset({
     'am', 'an', 'as', 'at', 'be', 'by', 'do', 'go',
