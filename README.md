@@ -61,8 +61,8 @@ Initial pruning: 493 keys representing 789 words.
 At the end of these 2.18+ seconds, `x.out` will contain a printed
 tree in which each path from the root node to a leaf is an anagram
 of the target phrase, `githubisgreat`. In the example, there are
-230. Words that are self-anagrams, like `('grate', 'retag', 'great',
-'gater', 'targe')` are shown in parentheses.
+230. Words that are self-anagrams, like `('thus', 'shut', 'tush')` 
+are shown in parentheses.
 
 ### Trivia Q & A.
 
