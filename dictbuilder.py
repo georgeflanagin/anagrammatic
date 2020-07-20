@@ -270,3 +270,12 @@ def dictloader(filename:str) -> tuple:
         reversed_dict = pickle.load(f)
 
     return forward_dict, reversed_dict
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print("Usage: python dictbuilder.py /full/path/to/dictionary/file mydictionaryname")
+        sys.exit(os.EX_DATAERR)
+
+    dictbuilder(sys.argv[1], sys.argv[2])
+    sys.exit(os.EX_OK)
