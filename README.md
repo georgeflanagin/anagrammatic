@@ -64,7 +64,11 @@ of the target phrase, `githubisgreat`. In the example, there are
 230. Words that are self-anagrams, like `('thus', 'shut', 'tush')` 
 are shown in parentheses.
 
-### Trivia Q & A.
+## Trivia Q & A.
+
+#### The PDF documentation looks like it is not finished.
+
+You are correct.
 
 #### Why did you put those operators in the CountedWord class?
 
