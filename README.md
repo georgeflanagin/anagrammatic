@@ -66,12 +66,6 @@ of the target phrase, `githubisgreat`. In the example, there are
 
 ### Trivia Q & A.
 
-#### Why did you not follow PEP-8 exactly?
-
-If it bothers you, you can experiment with
-[AutoPEP8](https://pypi.org/project/autopep8/0.8/).  It is excellent;
-I am just lazy.
-
 #### ... put those operators in the CountedWord class?
 
 I wrote C++ for years before I switched to Python in 2014 and
@@ -82,11 +76,21 @@ regained my sanity. I experienced a flashback.
 Yes, I know they are there. Time will tell whether they become
 useful. I needed to get some sleep, so there are a few loose ends.
 
-#### Your code is shit. Why did you ...?
+#### Why are the dictionaries saved as pickles? That limits their use to Python. 
+
+This is why God gave you the ability to fork the repo. The dictionaries are
+built and read entirely within the file `dictbuilder.py`, so you can change
+this. There are only about 100 lines of code that do the work. 
+
+#### Why did you not follow PEP-8 exactly? Your style is terrible. 
 
 OK, first I have heard worse, and I have committed bigger sins. A
 friend once described my programming as "entirely adequate." A
 written performance review once included the words "the only thing
 George knows how to do is write a compiler." I suppose each statement
 is still true.
+
+If it bothers you, you can experiment with
+[AutoPEP8](https://pypi.org/project/autopep8/0.8/).  It is excellent;
+I am just lazy.
 
