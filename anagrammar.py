@@ -50,29 +50,13 @@ seen = set()
 vvv = False
 tries = 0
 deadends = 0
+longest_branch_explored = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
-top_line ="  tree | user |  sys | faults |  I/O  | WAIT | USEDQ|" 
-formatter="{: >7} {: >6.2f} {: >6.2f} {:> 7} {: >7} {:>6} {:>6}"
-
-@trap
-def stats() -> None:
-    global tries
-    global formatter
-
-    info = resource.getrusage(resource.RUSAGE_SELF)
-    print(formatter.format(
-        tries,
-        info[0],    # user mode time in seconds.
-        info[1],    # system mode time in seconds.
-        info[6],    # page faults not requiring I/O
-        info[7],    # page faults that do require I/O
-        info[14],   # giving up time
-        info[15]    # USEDQ, pre-emptive reschedule.
-        ),  end="\r", file=sys.stderr)
-    
-    
-    
+top_line ="""
+ #|branch | user |  sys |  page  |  I/O  | WAIT | USEDQ| 
+  | evals |  sec |  sec | faults | faults|  sig |  sig |"""
+formatter="{:>2} {: >7} {: >6.2f} {: >6.2f} {:> 7} {: >7} {:>6} {:>6}"
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -94,7 +78,8 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
 def find_words(phrase:str, 
     forward_dict:dict, 
     reversed_dict:dict, 
-    min_len:int=0) -> SloppyTree:
+    min_len:int=0,
+    depth:int=0) -> SloppyTree:
     """
     Our formula. This is a recursive function to discover the 
     anagrams. It starts by considering the longest possible word
@@ -117,6 +102,7 @@ def find_words(phrase:str,
     global vvv
     global tries
     global deadends
+    global longest_branch_explored
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
@@ -124,6 +110,7 @@ def find_words(phrase:str,
         deadends += 1
         return None
 
+    longest_branch_explored = max(depth+1, longest_branch_explored)
     matches = SloppyTree()
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
@@ -132,7 +119,7 @@ def find_words(phrase:str,
 
     for i, k in enumerate(keys_by_size):
         tries += 1
-        if not tries%100: stats() 
+        if not tries%100: stats(depth) 
         remainder = phrase - k
         
         if str(remainder) in r_dict:
@@ -141,7 +128,7 @@ def find_words(phrase:str,
             seen.add(k)
             seen.add(remainder.as_str)
         else:
-            matches[k] = find_words(remainder, f_dict, r_dict, min_len)
+            matches[k] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
         if matches[k] is None: 
             deadends += 1
@@ -204,6 +191,27 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
 
 
 @trap
+def stats(depth:int) -> None:
+    """
+    Print a line of statistics.
+    """
+    global tries
+    global formatter
+
+    info = resource.getrusage(resource.RUSAGE_SELF)
+    print(formatter.format(
+        depth+1,
+        tries,
+        info[0],    # user mode time in seconds.
+        info[1],    # system mode time in seconds.
+        info[6],    # page faults not requiring I/O
+        info[7],    # page faults that do require I/O
+        info[14],   # giving up time
+        info[15]    # USEDQ, pre-emptive reschedule.
+        ),  end="\r", file=sys.stderr)
+    
+
+@trap
 def anagrammar_main(myargs:argparse.Namespace) -> int:
     """
     Let's build the anagram tree.
@@ -216,6 +224,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     global tries
     global topline
     global deadends
+    global longest_branch_explored
+
     vvv = myargs.verbose
 
     # If we have been given a limit on CPU, set it.
@@ -259,7 +269,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     print(60*'-', file=sys.stderr)
     anagrams = find_words(original_phrase, words, XF_words, min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
-    print(f"\n\n{tries} branches in the tree. {deadends} dead ends.", file=sys.stderr)
+    print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
+        file=sys.stderr)
     print(f"{anagrams}")
 
     return sys.exit(os.EX_OK)
