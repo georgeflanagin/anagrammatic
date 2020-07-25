@@ -274,9 +274,9 @@ def dictloader(filename:str) -> tuple:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage: python dictbuilder.py /full/path/to/dictionary/file mydictionaryname")
+    if len(sys.argv) < 4:
+        print("Usage: python dictbuilder.py min_len /full/path/to/dictionary/file mydictionaryname")
         sys.exit(os.EX_DATAERR)
 
-    dictbuilder(sys.argv[1], sys.argv[2])
+    dictbuilder(sys.argv[2], sys.argv[3], **{"min_len":int(sys.argv[1])})
     sys.exit(os.EX_OK)

@@ -181,6 +181,7 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
     are hashable, so they can be used as keys
     """
     new_tree = SloppyTree()
+    if t is None: return new_tree
 
     # Find out if we are at a leaf.
     if not isinstance(t, SloppyTree): 
@@ -258,12 +259,12 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
             k = words.get(w)     # Get the corresponding XF_word
             if k is None: continue
 
-            t = words_XF[k]  # Get the tuple.
+            t = XF_words[k]  # Get the tuple.
             t = tuple(_ for _ in t if _ != w) # Build a new tuple.
             if len(t):
-                words_XF[k] = t
+                XF_words[k] = t
             else:
-                words_XF.pop(k)
+                XF_words.pop(k)
 
     ###
     # We will make an initial pruning of the dictionaries, and then
