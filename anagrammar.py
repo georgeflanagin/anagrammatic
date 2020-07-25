@@ -182,7 +182,12 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
     """
     new_tree = SloppyTree()
 
-    if not isinstance(t, SloppyTree): return replacements[t]    
+    # Find out if we are at a leaf.
+    if not isinstance(t, SloppyTree): 
+        if isinstance(replacements[t], tuple) and len(replacements[t]) == 1:
+            return replacements[t][0]
+
+        return replacements[t]    
 
     for k in t:
         new_tree[replacements[k]] = replace_XF_keys(t[k], replacements)
@@ -269,6 +274,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     print(60*'-', file=sys.stderr)
     anagrams = find_words(original_phrase, words, XF_words, min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
+    stats(0)
     print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
         file=sys.stderr)
     print(f"{anagrams}")
