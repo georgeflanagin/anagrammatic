@@ -190,7 +190,10 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
         return replacements[t]    
 
     for k in t:
-        new_tree[replacements[k]] = replace_XF_keys(t[k], replacements)
+        result = replace_XF_keys(t[k], replacements)
+        new_key = replacements[k] if len(replacements[k]) > 1 else replacements[k][0]
+        new_tree[new_key] = result
+        # new_tree[replacements[k]] = replace_XF_keys(t[k], replacements)
 
     return new_tree
 
