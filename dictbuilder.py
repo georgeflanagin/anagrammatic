@@ -36,6 +36,7 @@ elif this_os == 'Darwin':
 else:
     default_word_list = './words'
 
+one_letter_words = frozenset({'a', 'i'})
 
 
 two_letter_words = frozenset({
@@ -183,8 +184,6 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
             and if a string, assume it is the name of a dictionary
             of proper nouns to be added. 
 
-        "min_len" -- an integer that effectively defaults to 4.
-
     This code is written to enable option processing. It is not
     particularly efficient because it is only executed once.
     """
@@ -196,24 +195,37 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
         data = in_f.read().split()
     sys.stderr.write(f"{len(data)} words read from {infile}.\n")
 
+
+    # Let's use /our/ three and two letter words, Knuth's
+    # five letter words, and the Scrabble dictionary's four letter words.
+    data = [ _ for _ in data if len(_) > 5 ]
+    with open('./knuths.5757.five.letter.words.txt') as in_f:
+        five_letter_words = in_f.read().split()
+    data.extend(five_letter_words)
+    with open('./four.letter.words') as in_f:
+        four_letter_words = in_f.read().split()
+    data.extend(four_letter_words)
+
+    print("Adding short words from internal list.")
+    data.extend(three_letter_words) 
+    data.extend(two_letter_words)
+    data.extend(('a', 'i'))
+    print(f"{len(data)} words ready for filtering.")
+
     ###
     # Apply filters
     ###
     if 'propernouns' not in kwargs:
         sys.stderr.write("removing proper nouns\n")
-        data = [ _ for _ in data if _.islower() and len(_) > 3 ]
-        sys.stderr.write(f"{len(data)} words remain")
+        data = [ _ for _ in data if _.islower() ]
+        print(f"{len(data)} words remain after removing proper nouns.")
     
     elif kwargs['propernouns'] is not True:
         with open(kwargs['propernouns']) as f:
             nouns = f.read().lower().split()
-        print(f"{len(nouns)} nouns added.")
+        print(f"{len(nouns)} proper nouns added.")
         data = data + nouns
 
-    data = [ _ for _ in data if len(_) >= 4 ]
-    data.extend(three_letter_words) 
-    data.extend(two_letter_words)
-    data.extend(('a', 'i'))
 
     ###
     # Now we start creating our data structures. Always leave out
@@ -221,7 +233,16 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
     ###
     filtered_data = {k.lower(): "".join(sorted(k.lower())) 
         for k in data if k.isalpha() }
-    sys.stderr.write(f"{len(filtered_data)} words remain after filtering.")
+    print(f"{len(filtered_data)} words remain after isalpha() filtering.")
+
+    # Count by length.
+    words = collections.defaultdict(list)
+    for word in data:
+        words[len(word)].append(word)
+
+    for k in sorted(list(words.keys())):
+        print(f"{len(words[k])} words of length {k}" )
+
 
     ###
     # reverse this dictionary.
@@ -229,7 +250,7 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
     reversed_dict = collections.defaultdict(list)
     for _ in set(list(filtered_data.keys())):
         reversed_dict[filtered_data[_]].append(_)
-    sys.stderr.write(f"reversed dict has {len(reversed_dict)} keys.\n")
+    print(f"reversed dict has {len(reversed_dict)} keys.\n")
     ###
     # the dictionary cannot change once it is built, so convert the lists
     # of strings that are the values to tuples of strings. Saves space,
@@ -268,9 +289,9 @@ def dictloader(filename:str) -> tuple:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 4:
-        print("Usage: python dictbuilder.py min_len /full/path/to/dictionary/file mydictionaryname")
+    if len(sys.argv) < 3:
+        print("Usage: python dictbuilder.py /full/path/to/dictionary/file mydictionaryname")
         sys.exit(os.EX_DATAERR)
 
-    dictbuilder(sys.argv[2], sys.argv[3], **{"min_len":int(sys.argv[1])})
+    dictbuilder(sys.argv[1], sys.argv[2], **{})
     sys.exit(os.EX_OK)

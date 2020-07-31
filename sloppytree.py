@@ -70,4 +70,4 @@ class SloppyTree(dict):
         """
         Printing one of these things requires a bit of finesse.
         """
-        return pprint.pformat(self, indent=4, width=100)
+        return pprint.pformat(self, compact=True, indent=4, width=100)

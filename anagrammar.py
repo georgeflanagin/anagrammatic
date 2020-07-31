@@ -115,7 +115,7 @@ def find_words(phrase:str,
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
-    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in seen ]
+    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len) if _ not in seen ]
 
     for i, k in enumerate(keys_by_size):
         tries += 1
@@ -126,7 +126,7 @@ def find_words(phrase:str,
             matches[k] = remainder.as_str if len(k) >= len(remainder.as_str) else None
             if remainder.as_str in matches: matches[k] = None
             seen.add(k)
-            seen.add(remainder.as_str)
+            # seen.add(remainder.as_str)
         else:
             matches[k] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
@@ -238,7 +238,10 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     vvv = myargs.verbose
 
     # If we have been given a limit on CPU, set it.
-    if myargs.cpu > 0: resource.setrlimit(resource.RLIMIT_CPU, (myargs.cpu, myargs.cpu))
+    if myargs.cpu > 0: 
+        print(f"This execution is being limited to {myargs.cpu} CPU seconds.")
+        resource.setrlimit(resource.RLIMIT_CPU, (myargs.cpu, myargs.cpu))
+
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
     # of what it was.
@@ -247,10 +250,13 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     original_words = myargs.phrase.lower().split()
     original_phrase = "".join(original_words)
     original_phrase_XF = CountedWord(original_phrase)
+
     min_len  = myargs.min_len
 
     # We cannot work without a dictionary, so let's get it first.
+    print("Loading dictionaries.")
     words, XF_words = dictloader(myargs.dictionary)
+    print("Dictionaries loaded.") 
 
     # We probably do not want to use any of the words that were in
     # the original phrase.
@@ -283,8 +289,6 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         file=sys.stderr)
     print(f"{anagrams}")
 
-    if myargs.verbose:
-        print(f"Keys\n{XF_words.keys()}\n")
     return sys.exit(os.EX_OK)
 
 
