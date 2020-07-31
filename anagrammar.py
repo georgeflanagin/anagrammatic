@@ -154,7 +154,7 @@ def prune_dicts(filter:str,
     ###
     filtered_reversed_dict = { k : v for 
         k, v in reversed_dict.items() 
-        if len(k) > minlen and CountedWord(k) <= filter_XF }
+        if len(k) >= minlen and CountedWord(k) <= filter_XF }
 
     ###
     # With the forward filtering, we start with the contents
@@ -276,13 +276,15 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     print(f"{top_line}", file=sys.stderr)
     print(60*'-', file=sys.stderr)
-    anagrams = find_words(original_phrase, words, XF_words, min_len)
+    anagrams = find_words(original_phrase, words, XF_words, myargs.min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
     stats(0)
     print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
         file=sys.stderr)
     print(f"{anagrams}")
 
+    if myargs.verbose:
+        print(f"Keys\n{XF_words.keys()}\n")
     return sys.exit(os.EX_OK)
 
 
@@ -295,7 +297,7 @@ if __name__ == "__main__":
         help="Be chatty about what is taking place.")
     parser.add_argument('--cpu', type=float, default=0,
         help="Set a maximum number of CPU seconds for execution.")
-    parser.add_argument('--min-len', type=int, default=3,
+    parser.add_argument('--min-len', type=int, default=2,
         help="Minimum length of any word in the anagram")
     parser.add_argument('--no-dups', action='store_true',
         help="Disallow words that were in the original phrase.")

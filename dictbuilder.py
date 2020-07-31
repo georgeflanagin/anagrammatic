@@ -188,6 +188,7 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
     This code is written to enable option processing. It is not
     particularly efficient because it is only executed once.
     """
+
     global two_letter_words
     global three_letter_words
 
@@ -209,17 +210,10 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
         print(f"{len(nouns)} nouns added.")
         data = data + nouns
 
-    elif 'min_len' in kwargs:
-        data = [ _ for _ in data if len(_) > kwargs['min_len'] ]
-        if kwargs['min_len'] in (1, 2, 3):
-            data.extend(three_letter_words) 
-        elif kwargs['min_len'] in (1, 2):
-            data.extend(two_letter_words)
-        elif kwargs['min_len'] == 1:
-            data.extend(('a', 'i'))
-
-    else:
-        pass # add more switches here.
+    data = [ _ for _ in data if len(_) >= 4 ]
+    data.extend(three_letter_words) 
+    data.extend(two_letter_words)
+    data.extend(('a', 'i'))
 
     ###
     # Now we start creating our data structures. Always leave out
