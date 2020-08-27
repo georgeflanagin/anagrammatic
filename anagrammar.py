@@ -54,9 +54,9 @@ longest_branch_explored = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- #|branch | user |  sys |  page  |  I/O  | WAIT | USEDQ| 
-  | evals |  sec |  sec | faults | faults|  sig |  sig |"""
-formatter="{:>2} {: >7} {: >6.2f} {: >6.2f} {:> 7} {: >7} {:>6} {:>6}"
+ #|branch | seen | user |  sys |  page  |  I/O  | WAIT | USEDQ | 
+  | evals | keys |  sec | faults | faults|  sig |  sig |       |"""
+formatter="{:>2} {: >7} {: >6} {: >6.2f} {: >6.2f} {:> 7} {: >7} {:>6} {:>6}"
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -115,7 +115,7 @@ def find_words(phrase:str,
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
-    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len) if _ not in seen ]
+    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in seen ]
 
     for i, k in enumerate(keys_by_size):
         tries += 1
@@ -123,10 +123,11 @@ def find_words(phrase:str,
         remainder = phrase - k
         
         if str(remainder) in r_dict:
-            matches[k] = remainder.as_str if len(k) >= len(remainder.as_str) else None
-            if remainder.as_str in matches: matches[k] = None
-            seen.add(k)
-            # seen.add(remainder.as_str)
+            if len(k) >= len(remainder):
+                matches[k] = remainder.as_str
+                if depth == 0: seen.add(k) 
+            if remainder.as_str in matches: 
+                matches[k] = None
         else:
             matches[k] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
@@ -211,6 +212,7 @@ def stats(depth:int) -> None:
     print(formatter.format(
         depth+1,
         tries,
+        len(seen),  # keys looked at so far.
         info[0],    # user mode time in seconds.
         info[1],    # system mode time in seconds.
         info[6],    # page faults not requiring I/O
@@ -281,7 +283,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         file=sys.stderr)
 
     print(f"{top_line}", file=sys.stderr)
-    print(60*'-', file=sys.stderr)
+    print(65*'-', file=sys.stderr)
     anagrams = find_words(original_phrase, words, XF_words, myargs.min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
     stats(0)
