@@ -54,9 +54,10 @@ longest_branch_explored = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- #|branch | seen | user |  sys |  page  |  I/O  | WAIT | USEDQ | 
-  | evals | keys |  sec | faults | faults|  sig |  sig |       |"""
-formatter="{:>2} {: >7} {: >6} {: >6.2f} {: >6.2f} {:> 7} {: >7} {:>6} {:>6}"
+ D | branch |  dead  | seen |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ | 
+   | evals  |  ends  | keys |  secs  |  secs  | faults |  sig  |  sig |       |
+---+--------+--------+------+--------+--------+--------+-------+------+-------|"""
+formatter=" {:>2} {: >8} {: >8} {: >6} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6}"
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -207,11 +208,13 @@ def stats(depth:int) -> None:
     """
     global tries
     global formatter
+    global deadends
 
     info = resource.getrusage(resource.RUSAGE_SELF)
     print(formatter.format(
         depth+1,
         tries,
+        deadends,
         len(seen),  # keys looked at so far.
         info[0],    # user mode time in seconds.
         info[1],    # system mode time in seconds.
@@ -283,7 +286,6 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         file=sys.stderr)
 
     print(f"{top_line}", file=sys.stderr)
-    print(65*'-', file=sys.stderr)
     anagrams = find_words(original_phrase, words, XF_words, myargs.min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
     stats(0)
