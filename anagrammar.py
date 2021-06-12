@@ -46,7 +46,7 @@ def time_print(s:str) -> None:
     print("{} : {}".format(round(time.time()-start_time, 3), s))
 
 # So we don't waste our time examining things twice.
-seen = set()
+failures = set()
 vvv = False
 tries = 0
 deadends = 0
@@ -54,7 +54,7 @@ longest_branch_explored = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- D | branch |  dead  | seen |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ | 
+ D | branch |  dead  | fail |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ | 
    | evals  |  ends  | keys |  secs  |  secs  | faults |  sig  |  sig |       |
 ---+--------+--------+------+--------+--------+--------+-------+------+-------|"""
 formatter=" {:>2} {: >8} {: >8} {: >6} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6}"
@@ -99,7 +99,7 @@ def find_words(phrase:str,
         keys, or None, never an empty SloppyTree.
     """
 
-    global seen
+    global failures
     global vvv
     global tries
     global deadends
@@ -116,27 +116,33 @@ def find_words(phrase:str,
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
-    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in seen ]
+    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in failures ]
 
-    for i, k in enumerate(keys_by_size):
+    for i, key in enumerate(keys_by_size):
         tries += 1
         if not tries%100: stats(depth) 
-        remainder = phrase - k
+        remainder = phrase - key
         
+        # Is there at least one word that can be made from remainder?
         if str(remainder) in r_dict:
-            if len(k) >= len(remainder):
-                matches[k] = remainder.as_str
-                if depth == 0: seen.add(k) 
+
+            # Is the key that we subtracted as long as the remainder?
+            if len(key) >= len(remainder):
+                # Temporarily add it, and see if it holds.
+                matches[key] = remainder.as_str
+
             if remainder.as_str in matches: 
-                matches[k] = None
+                matches[key] = None
         else:
-            matches[k] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
+            matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
-        if matches[k] is None: 
+        if matches[key] is None: 
             deadends += 1
-            del matches[k]
+            del matches[key]
 
-    return matches if len(matches) else None
+    if len(matches): return matches
+    failures.add(str(phrase))
+    return None
 
 
 @trap
@@ -215,7 +221,7 @@ def stats(depth:int) -> None:
         depth+1,
         tries,
         deadends,
-        len(seen),  # keys looked at so far.
+        len(failures),  
         info[0],    # user mode time in seconds.
         info[1],    # system mode time in seconds.
         info[6],    # page faults not requiring I/O
