@@ -119,6 +119,7 @@ def find_words(phrase:str,
     keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in failures ]
 
     for i, key in enumerate(keys_by_size):
+        if key in failures: continue
         tries += 1
         if not tries%100: stats(depth) 
         remainder = phrase - key
