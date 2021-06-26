@@ -88,9 +88,9 @@ Initial pruning: 185 keys representing 238 words.
 
 12890 branches in the tree. 2503 dead ends. Max depth 4.
 
-real	0m0.588s
-user	0m0.519s
-sys	    0m0.028s
+real    0m0.588s
+user    0m0.519s
+sys     0m0.028s
 ```
 
 `x.out` will contain a printed tree in which each path from the
@@ -151,32 +151,42 @@ I think "GUI tags bit her" is perhaps the best of the lot.
 
 ## Trivia Q & A.
 
-#### The PDF documentation looks like it is not finished.
+### How do I build a dictionary?
+
+The assumption in `dictbuilder.py` is that the input is a file of words, white
+space delimited. You type in something like:
+
+`python3 dictbuilder.py /path/to/your/file nameyouwanttouse`
+
+The result will be two files, `nameyouwanttouse.forward` and `nameyouwanttouse.reversed`. 
+
+### The PDF documentation looks like it is not finished.
 
 You are correct.
 
-#### Why did you put those operators in the CountedWord class?
+### Why did you put those operators in the CountedWord class?
 
 I wrote C++ for years before I switched to Python in 2014 and
 regained my sanity. I experienced a flashback.
 
-#### Why do you have operators you in the CountedWord class that you don't use?
+### Why do you have operators you in the CountedWord class that you don't use?
 
 Yes, I know they are there. Time will tell whether they become
 useful. There are loose ends.
 
-#### Why are the dictionaries saved as pickles? That limits their use to Python. 
+### Why are the dictionaries saved as pickles? That limits their use to Python. 
 
 This is why God gave you the ability to fork the repo. The dictionaries are
 built and read entirely within the file `dictbuilder.py`, so you can change
 this. There are only about 100 lines of code that do the work. 
 
-#### Why did you not follow PEP-8 exactly? Your style is terrible. 
+### Why did you not follow PEP-8 exactly? Your style is terrible. 
 
-OK, first I have heard worse and I have committed bigger sins. My best 
-professional friend once described my programming as "entirely adequate." A
-written performance review once included the words "the only thing
-George knows how to do is write a compiler."
+OK, first I have heard worse and I have committed bigger sins.
+Recently. My best professional friend once described my programming
+as "entirely adequate." A written performance review once included
+the words "the only thing George knows how to do is write a compiler."
+Both statements are probably correct.
 
 If it bothers you, you can experiment with
 [AutoPEP8](https://pypi.org/project/autopep8/0.8/).  It is excellent;
