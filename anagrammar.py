@@ -10,7 +10,6 @@ import os
 import sys
 
 import argparse
-from   functools import total_ordering
 import math
 import platform
 import resource
