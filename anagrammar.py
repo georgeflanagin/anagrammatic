@@ -124,6 +124,7 @@ def find_words(phrase:str,
         # "key" maps to at least one word, and "remainder" is the
         # part about which we are uncertain.
         remainder = phrase - key
+        if str(remainder) in remainders: continue
 
         # No reason to look closely if we know it is too short.
         if len(remainder) < min_len:
@@ -143,13 +144,13 @@ def find_words(phrase:str,
         else:
             matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
-            # At this point, we have thoroghly examined remainder, and there is no
-            # reason to look at it again.
-            remainders.add(str(remainder))
-
         if matches[key] is None: 
             deadends += 1
             del matches[key]
+
+        # At this point, we have thoroghly examined remainder, and there is no
+        # reason to look at it again.
+        remainders.add(str(remainder))
 
 
     if len(matches): return matches
@@ -232,7 +233,7 @@ def stats(depth:int) -> None:
         depth+1,
         tries,
         deadends,
-        len(failures),  
+        0,  
         info[0],    # user mode time in seconds.
         info[1],    # system mode time in seconds.
         info[6],    # page faults not requiring I/O
