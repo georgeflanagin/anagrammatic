@@ -144,7 +144,7 @@ def find_words(phrase:str,
         else:
             matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
-        if matches[key] is None: 
+        if not matches[key]: 
             deadends += 1
             del matches[key]
 
@@ -152,9 +152,7 @@ def find_words(phrase:str,
         # reason to look at it again.
         remainders.add(str(remainder))
 
-
-    if len(matches): return matches
-    return None
+    return matches if len(matches) else None
 
 
 @trap
