@@ -47,7 +47,6 @@ def time_print(s:str) -> None:
 
 # So we don't waste our time examining things twice.
 remainders = set()
-failures = set()
 vvv = False
 tries = 0
 deadends = 0
@@ -55,10 +54,10 @@ longest_branch_explored = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- D | branch |  dead  | fail |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ | 
-   | evals  |  ends  | keys |  secs  |  secs  | faults |  sig  |  sig |       |
----+--------+--------+------+--------+--------+--------+-------+------+-------|"""
-formatter=" {:>2} {: >8} {: >8} {: >6} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6}"
+ D | branch |  dead  | fail |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
+   | evals  |  ends  | keys |  secs  |  secs  | faults |  sig  |  sig |       |         |
+---+--------+--------+------+--------+--------+--------+-------+------+-------+---------|"""
+formatter=" {:>2} {: >8} {: >8} {: >6} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9}"
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -100,7 +99,6 @@ def find_words(phrase:str,
         keys, or None, never an empty SloppyTree.
     """
 
-    global failures
     global remainders
     global vvv
     global tries
@@ -118,17 +116,21 @@ def find_words(phrase:str,
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
-    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in failures ]
+    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) ]
 
     for i, key in enumerate(keys_by_size):
-        if key in failures: continue
         tries += 1
         if not tries%100: stats(depth) 
+        # "key" maps to at least one word, and "remainder" is the
+        # part about which we are uncertain.
         remainder = phrase - key
-        if str(remainder) in remainders: continue
-        remainders.add(str(remainder))
+
+        # No reason to look closely if we know it is too short.
+        if len(remainder) < min_len:
+            continue
         
-        # Is there at least one word that can be made from remainder?
+        # Is there at least one word that can be made from the
+        # complete remainder string?
         if str(remainder) in r_dict:
 
             # Is the key that we subtracted as long as the remainder?
@@ -141,12 +143,16 @@ def find_words(phrase:str,
         else:
             matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
+            # At this point, we have thoroghly examined remainder, and there is no
+            # reason to look at it again.
+            remainders.add(str(remainder))
+
         if matches[key] is None: 
             deadends += 1
             del matches[key]
 
+
     if len(matches): return matches
-    failures.add(str(phrase))
     return None
 
 
@@ -232,7 +238,8 @@ def stats(depth:int) -> None:
         info[6],    # page faults not requiring I/O
         info[7],    # page faults that do require I/O
         info[14],   # giving up time
-        info[15]    # USEDQ, pre-emptive reschedule.
+        info[15],   # USEDQ, pre-emptive reschedule.
+        len(remainders)
         ),  end="\r", file=sys.stderr)
     
 
