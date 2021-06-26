@@ -271,7 +271,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # of what it was.
     os.nice(7)
 
-    original_words = myargs.phrase.lower().split()
+    original_words = [ _.lower() for _ in myargs.phrase ]
     original_phrase = "".join(original_words)
     original_phrase_XF = CountedWord(original_phrase)
 
@@ -328,7 +328,7 @@ if __name__ == "__main__":
         help="Minimum length of any word in the anagram")
     parser.add_argument('--no-dups', action='store_true',
         help="Disallow words that were in the original phrase.")
-    parser.add_argument('phrase', type=str, 
+    parser.add_argument('phrase', type=str, nargs='+',
         help="The phrase. If it contains spaces, it must be in quotes.")
     parser.add_argument('--dictionary', type=str, required=True,
         help="Name of the dictionary of words, or a pickle of the dictionary.")
