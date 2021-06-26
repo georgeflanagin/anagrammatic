@@ -151,7 +151,7 @@ I think "GUI tags bit her" is perhaps the best of the lot.
 
 ## Trivia Q & A.
 
-### How do I build a dictionary?
+### I don't like your dictionaries. How do I build one of my own?
 
 The assumption in `dictbuilder.py` is that the input is a file of words, white
 space delimited. You type in something like:
@@ -162,16 +162,16 @@ The result will be two files, `nameyouwanttouse.forward` and `nameyouwanttouse.r
 
 ### The PDF documentation looks like it is not finished.
 
-You are correct.
+Yes.
 
 ### Why did you put those operators in the CountedWord class?
 
-I wrote C++ for years before I switched to Python in 2014 and
-regained my sanity. I experienced a flashback.
+I wrote C++ for 20 years before I switched to Python in 2014 and
+regained my sanity. I experienced a flashback. It's like LSD, but worse.
 
 ### Why do you have operators you in the CountedWord class that you don't use?
 
-Yes, I know they are there. Time will tell whether they become
+I know they are there. Time will tell whether they become
 useful. There are loose ends.
 
 ### Why are the dictionaries saved as pickles? That limits their use to Python. 
