@@ -46,6 +46,7 @@ def time_print(s:str) -> None:
     print("{} : {}".format(round(time.time()-start_time, 3), s))
 
 # So we don't waste our time examining things twice.
+remainders = set()
 failures = set()
 vvv = False
 tries = 0
@@ -100,6 +101,7 @@ def find_words(phrase:str,
     """
 
     global failures
+    global remainders
     global vvv
     global tries
     global deadends
@@ -123,6 +125,8 @@ def find_words(phrase:str,
         tries += 1
         if not tries%100: stats(depth) 
         remainder = phrase - key
+        if str(remainder) in remainders: continue
+        remainders.add(str(remainder))
         
         # Is there at least one word that can be made from remainder?
         if str(remainder) in r_dict:
