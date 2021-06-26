@@ -54,10 +54,10 @@ longest_branch_explored = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- D | branch |  dead  | fail |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
-   | evals  |  ends  | keys |  secs  |  secs  | faults |  sig  |  sig |       |         |
----+--------+--------+------+--------+--------+--------+-------+------+-------+---------|"""
-formatter=" {:>2} {: >8} {: >8} {: >6} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9}"
+ D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
+   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
+---+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
+formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9}"
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -231,7 +231,6 @@ def stats(depth:int) -> None:
         depth+1,
         tries,
         deadends,
-        0,  
         info[0],    # user mode time in seconds.
         info[1],    # system mode time in seconds.
         info[6],    # page faults not requiring I/O
@@ -262,7 +261,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # If we have been given a limit on CPU, set it.
     if myargs.cpu > 0: 
         print(f"This execution is being limited to {myargs.cpu} CPU seconds.")
-        resource.setrlimit(resource.RLIMIT_CPU, (myargs.cpu, myargs.cpu))
+        resource.setrlimit(resource.RLIMIT_CPU, (int(myargs.cpu), int(myargs.cpu)))
 
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
