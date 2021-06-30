@@ -52,6 +52,10 @@ Windows is a BYODictionary experience.
 `--no-dups` Use this one if you want to avoid having any of the words in
 your input phrase in the list of anagrams at the end.
 
+`--none-of` Use this to point to a file of words to exclude from the 
+resulting anagrams. It is a better idea to build a special dictionary if
+this is a list of words you plan to use regularly.
+
 `--min-len` This tells the anagrammar the shortest word to consider. 
 
 `--dictionary` In this project, I have provided two dictionaries already

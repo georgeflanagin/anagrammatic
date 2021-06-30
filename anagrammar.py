@@ -278,19 +278,39 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     words, XF_words = dictloader(myargs.dictionary)
     print("Dictionaries loaded.") 
 
-    # We probably do not want to use any of the words that were in
+    ###
+    # We may not want to use any of the words that were in
     # the original phrase.
+    ###
+    exclusions = []
     if myargs.no_dups:
         for w in original_words:
             k = words.get(w)     # Get the corresponding XF_word
-            if k is None: continue
+            if k is not None: exclusions.append(k)
 
-            t = XF_words[k]  # Get the tuple.
-            t = tuple(_ for _ in t if _ != w) # Build a new tuple.
-            if len(t):
-                XF_words[k] = t
-            else:
-                XF_words.pop(k)
+    ###
+    # Check for a file of exclusions.
+    ###
+    if myargs.none_of:
+        try:
+            with open(myargs.none_of) as words:
+                exclusions.extend(words.read().lower().split())
+        except FileNotFoundError as e:
+            print(f"Unable to open {myargs.none_of}")
+
+    ###
+    # Remove all of the words we have collected.
+    ###
+    for w in exclusions: 
+        k = words.get(w)
+        if k is None: continue
+
+        t = XF_words[k]
+        t = tuple(_ for _ in t if _ != w)
+        if len(t):
+            XF_words[k] = t
+        else:
+            XF_words.pop(k)
 
     ###
     # We will make an initial pruning of the dictionaries, and then
@@ -316,6 +336,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
+    parser.add_argument('--none-of', type=str, default=None,
+        help="Exclude all words in the given filename.")
     parser.add_argument('-v', '--verbose', action='store_true',
         help="Be chatty about what is taking place.")
     parser.add_argument('--cpu', type=float, default=0,
