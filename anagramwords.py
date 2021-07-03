@@ -100,3 +100,4 @@ class CountedWord(Counter):
         """
         return self.as_str
 
+

@@ -12,6 +12,7 @@ import sys
 import argparse
 import math
 import platform
+import random
 import resource
 import time
 
@@ -46,6 +47,7 @@ def time_print(s:str) -> None:
 
 # So we don't waste our time examining things twice.
 remainders = set()
+order = -1
 vvv = False
 tries = 0
 deadends = 0
@@ -64,12 +66,13 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     Print the command line arguments as they would have been if the user
     had specified every possible one (including optionals and defaults).
     """
+    global vvv
 
     if not return_it: print("")
     opt_string = ""
     for _ in sorted(vars(args).items()):
         opt_string += " --"+ _[0].replace("_","-") + " " + str(_[1])
-    if not return_it: print(opt_string + "\n", file=sys.stderr)
+    if not return_it and vvv: print(opt_string + "\n", file=sys.stderr)
 
     return opt_string if return_it else ""
 
@@ -98,16 +101,18 @@ def find_words(phrase:str,
         keys, or None, never an empty SloppyTree.
     """
 
-    global remainders
-    global vvv
-    global tries
     global deadends
     global longest_branch_explored
+    global order
+    global remainders
+    global tries
+    global vvv
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
     if len(phrase) < min_len * 2: 
         deadends += 1
+        vvv and sys.stderr.write(f"{phrase.as_str} too short.")
         return None
 
     longest_branch_explored = max(depth+1, longest_branch_explored)
@@ -115,41 +120,54 @@ def find_words(phrase:str,
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
-    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) ]
+    if order:
+        keys_by_size = ( _ for _ in sorted(r_dict.keys(), key=len, reverse=(order==2)) )
+    else:
+        keys_by_size = ( _ for _ in random.sample(r_dict.keys(), len(r_dict)) )
 
     for i, key in enumerate(keys_by_size):
         tries += 1
-        if not tries%100: stats(depth) 
+        if not vvv and not tries%100: stats(depth) 
         # "key" maps to at least one word, and "remainder" is the
         # part about which we are uncertain.
         remainder = phrase - key
-        if str(remainder) in remainders: continue
+        vvv > 2 and sys.stderr.write(f"{key=} remainder={remainder.as_str}\n")
 
-        # No reason to look closely if we know it is too short.
         if len(remainder) < min_len:
+            vvv > 2 and sys.stderr.write(f"len({remainder.as_str}) < {min_len} \n")
             continue
         
+        if str(remainder) in remainders: 
+            vvv > 2 and sys.stderr.write(f"{remainder.as_str} is known dead end.\n")
+            continue
+
         # Is there at least one word that can be made from the
         # complete remainder string?
         if str(remainder) in r_dict:
-
+            
+            vvv > 2 and sys.stderr.write(f"{remainder.as_str} in r_dict\n")
             # Is the key that we subtracted as long as the remainder?
             if len(key) >= len(remainder):
                 # Temporarily add it, and see if it holds.
                 matches[key] = remainder.as_str
+                vvv > 2 and sys.stderr.write(f"key longer than remainder ...\n")
 
             if remainder.as_str in matches: 
                 matches[key] = None
+                vvv > 2 and sys.stderr.write(f"... but remainder already in matches\n")
         else:
+            vvv > 2 and sys.stderr.write(f"{remainder.as_str} not in r_dict -- recursing to level {depth+1}\n")
             matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
         if not matches[key]: 
+            vvv > 2 and sys.stderr.write(f"no component matches for {remainder}\n")
             deadends += 1
             del matches[key]
 
         # At this point, we have thoroghly examined remainder, and there is no
         # reason to look at it again.
         remainders.add(str(remainder))
+        vvv > 2 and sys.stderr.write(f"{remainder.as_str} is a new dead end.\n")
 
     return matches if len(matches) else None
 
@@ -274,9 +292,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     min_len  = myargs.min_len
 
     # We cannot work without a dictionary, so let's get it first.
-    print("Loading dictionaries.")
+    print(myargs.phrase)
     words, XF_words = dictloader(myargs.dictionary)
-    print("Dictionaries loaded.") 
 
     ###
     # We may not want to use any of the words that were in
@@ -336,22 +353,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
-    parser.add_argument('--none-of', type=str, default=None,
-        help="Exclude all words in the given filename.")
-    parser.add_argument('-v', '--verbose', action='store_true',
-        help="Be chatty about what is taking place.")
     parser.add_argument('--cpu', type=float, default=0,
         help="Set a maximum number of CPU seconds for execution.")
+    parser.add_argument('--dictionary', type=str, required=True,
+        help="Name of the dictionary of words, or a pickle of the dictionary.")
     parser.add_argument('--min-len', type=int, default=2,
         help="Minimum length of any word in the anagram")
     parser.add_argument('--no-dups', action='store_true',
         help="Disallow words that were in the original phrase.")
+    parser.add_argument('--none-of', type=str, default=None,
+        help="Exclude all words in the given filename.")
+    parser.add_argument('--order', type=int, choices=(0, 1, 2), default=1,
+        help="Key ordering: 0: random, 1:shortest first, 2:longest first")
+    parser.add_argument('-v', '--verbose', type=int, default=0, choices=(0, 1, 2, 3),
+        help="Be chatty about what is taking place -- on a scale of 0 to 3")
+
     parser.add_argument('phrase', type=str, nargs='+',
         help="The phrase. If it contains spaces, it must be in quotes.")
-    parser.add_argument('--dictionary', type=str, required=True,
-        help="Name of the dictionary of words, or a pickle of the dictionary.")
 
     myargs = parser.parse_args()
     dump_cmdline(myargs)
+    order = myargs.order
 
     sys.exit(anagrammar_main(myargs))
