@@ -133,7 +133,7 @@ def find_words(phrase:str,
         remainder = phrase - key
         vvv > 2 and sys.stderr.write(f"{key=} remainder={remainder.as_str}\n")
 
-        if len(remainder) < min_len:
+        if len(remainder.as_str) < min_len:
             vvv > 2 and sys.stderr.write(f"len({remainder.as_str}) < {min_len} \n")
             continue
         
@@ -147,20 +147,16 @@ def find_words(phrase:str,
             
             vvv > 2 and sys.stderr.write(f"{remainder.as_str} in r_dict\n")
             # Is the key that we subtracted as long as the remainder?
-            if len(key) >= len(remainder):
-                # Temporarily add it, and see if it holds.
-                matches[key] = remainder.as_str
-                vvv > 2 and sys.stderr.write(f"key longer than remainder ...\n")
-
-            if remainder.as_str in matches: 
-                matches[key] = None
-                vvv > 2 and sys.stderr.write(f"... but remainder already in matches\n")
+            matches[key] = None if remainder.as_str in matches else remainder.as_str
+            vvv > 2 and not matches[key] and sys.stderr.write(f"... but remainder already in matches\n")
         else:
-            vvv > 2 and sys.stderr.write(f"{remainder.as_str} not in r_dict -- recursing to level {depth+1}\n")
-            matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
+            if len(remainder) < min_len * 2:
+                vvv > 2 and sys.stderr.write(f"{remainder.as_str} too short to recurse.\n")
+            else:
+                vvv > 2 and sys.stderr.write(f"{remainder.as_str} recursing to level {depth+1}\n")
+                matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
         if not matches[key]: 
-            vvv > 2 and sys.stderr.write(f"no component matches for {remainder}\n")
             deadends += 1
             del matches[key]
 
