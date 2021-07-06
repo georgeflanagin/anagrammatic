@@ -8,7 +8,7 @@
 \SetWatermarkAngle{55}
 \SetWatermarkColor[gray]{0.97}
 
-\title{A Minimal Algorithm to Find Anagrams Using Python}
+\title{An Algorithm to Find Anagrams Using Python}
 \author{George Flanagin\\University of Richmond\\\lit{gflanagin@richmond.edu}}
 \date{\today}
 
@@ -568,6 +568,60 @@ class CountedWord(Counter):
 \caption{Example code for derived \lit{Counter} class}
 \label{fig:countermods}
 \end{figure}
+
+\subsection*{N-ary trees in Python}
+
+GitHub is filled with trees for Python, and the reason is very
+likely that Python (as of 3.8) has no native tree in its standard
+library.  For anagrams, we need nothing complex like self-balancing
+red-black trees, nor even B-trees. We need a flexible N-ary tree.
+
+It is fairly easy to construct one starting from the idea behind
+the \lit{defaultdict} from the \lit{collections} module, although
+it does not quite work for us as delivered. We need to support all
+the following abstractions:
+
+\begin{enumerate}
+\item From graph theory fundamentals, we know that a tree is a data
+structure in which there is exactly one path from any node to another
+node. This implies that a linear sequence is also a tree, although
+not a very ornamental example.
+
+\item An important property of a tree can be derived from the
+definition: if we cut a tree into two pieces by removing the unique
+connection between any two nodes, the resulting two data structures
+are each trees. To look at it from the opposite direction, the
+direction more useful for a recursive search like finding anagrams,
+we can take any two trees and perform a grafting operation at a
+node to join them into a single tree.
+
+\end{enumerate}
+
+The needed operations in Python can be accomplished with the
+\lit{dict} because \lit{dict}s may contain \lit{dict}s as members.
+From a programming standpoint, this operation needs to be as intuitive
+as possible if we are to avoid common programming mistakes.
+
+The single data structure for trees in this program is known as 
+the \lit{SloppyTree}, a name that speaks for itself. It is directly
+derived from \lit{dict}, with the following behaviors modified:
+
+\begin{itemize}
+\item \lit{SloppyTree} provides a \verb|__missing__| function that
+creates a new key with the default value of an empty \lit{SloppyTree} in
+the case where the key is not found. The native \lit{dict} function
+raises a \lit{KeyError} when elements are not found; instead we want to
+automatically add them.
+
+\item Consistent with \lit{class}-like behavior, \lit{SloppyTree} provides
+the trio of member access operations: \verb|__getattr__|, \verb|__setattr__|,
+and \verb|__delattr__|. 
+
+\item Consistent with our desire to write as little code as possible, 
+\lit{SloppyTree} has a \verb|__str__| operator that invokes the \lit{pprint.pformat}
+function to write out the contents in a way suitable for review.
+
+\end{itemize}
 
 \end{document}
 
