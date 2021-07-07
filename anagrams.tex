@@ -623,6 +623,12 @@ function to write out the contents in a way suitable for review.
 
 \end{itemize}
 
+As much as we benefit from the \lit{CountedWord} class, it is unfortunate
+that they are not hashable, and therefore cannot be keys for the \lit{SloppyTree}
+nor any other \lit{dict}-derived type. This is why the \verb|CountedWord.__str__| 
+operator returns the extra class member \verb|as_str| --- we really do not want
+to be constantly rebuilding them. 
+
 \end{document}
 
 
