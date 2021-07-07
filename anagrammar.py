@@ -359,6 +359,8 @@ if __name__ == "__main__":
         help="Name of the dictionary of words, or a pickle of the dictionary.")
     parser.add_argument('--min-len', type=int, default=2,
         help="Minimum length of any word in the anagram")
+    parser.add_argument('--nice', type=int, choices=range(0, 20), default=0,
+        help="Niceness may affect execution time.")
     parser.add_argument('--no-dups', action='store_true',
         help="Disallow words that were in the original phrase.")
     parser.add_argument('--none-of', type=str, default=None,
@@ -372,6 +374,7 @@ if __name__ == "__main__":
         help="The phrase. If it contains spaces, it must be in quotes.")
 
     myargs = parser.parse_args()
+    if myargs.nice: os.nice(myargs.nice)
     dump_cmdline(myargs)
     order = myargs.order
 

@@ -1,11 +1,13 @@
 \documentclass[letterpaper, 11pt]{article}
 \usepackage{cmap}
 \usepackage{urtechdoc}
+\usepackage{urfooter}
+\providecommand{\anagrammar}{A\textsc{nagrammar}\xspace}
 
 
-\SetWatermarkText{Work in Process}
-\SetWatermarkFontSize{4cm}
-\SetWatermarkAngle{55}
+\SetWatermarkText{Review Copy}
+\SetWatermarkFontSize{5cm}
+\SetWatermarkAngle{58}
 \SetWatermarkColor[gray]{0.97}
 
 \title{An Algorithm to Find Anagrams Using Python}
@@ -34,7 +36,11 @@ Python's data structures, and an excuse to develop a few new ones
 expressly for this purpose. This paper defines an efficient algorithm
 for finding all anagrams of a given collection of letters using the
 Python Standard Library for the base code, and the system dictionary
-as a source for allowed words.
+as a source for allowed words. 
+
+This program is the \anagrammar. Its source code and this documentation
+may be found in \href{https://github.com/georgeflanagin/anagrammatic}
+{https://github.com/georgeflanagin/anagrammatic}
 
 \end{abstract}
 
@@ -702,6 +708,11 @@ suppose the input phrase has 18 letters, and the words must be six letters
 long. With these initial conditions, the only possible combinations are three six-letter words
 or two words where the pairs are \lit{(9, 9)}, \lit{(8, 10)}, \lit{(7, 11)}, and \lit{(6, 12)} letters.
 
+\item[--nice] Niceness is available for user programs, and the
+higher the value, the more willing the OS will be to execute another
+program. On the other hand, it may give the program a longer quantum and
+fewer interruptions when it is running. 
+
 \item[--no-dups] When this parameter is present and the input
 phrase is written as more than one word, \ie \emph{george flanagin} 
 rather than \emph{georgeflanagin}, none of the words are allowed 
@@ -732,6 +743,8 @@ recursions noted.
 \end{description}
 
 \subsection{Example outputs}
+
+\subsubsection{Statistics}
 
 As mentioned in Section~\ref{sec:bigpicture}, the number of anagrams
 can become large, quickly, and for a variety of reasons -- the
@@ -810,6 +823,131 @@ once, each new tail is added to a Python \lit{set}. The number
 shown in this column is the final total.
 
 \end{description}
+
+\subsubsection{Anagrams of a sample phrase}
+
+Using \emph{sample phrase} as the sample phrase, and setting the minimum
+length to 4, we get interesting results when using the full Linux 
+spelling dictionary. The \anagrammar's normal output is shown in Figure~\ref{fig:samplephrase}.
+The less interesting, but more easily understood collection of anagrams from the MIT 10000 most
+common words is shown in Figure~\ref{fig:smallsample}.
+
+
+\begin{figure}
+\footnotesize
+\begin{verbatim}
+anagram --min-len 4 --dict mit10000 "sample phrase"
+
+['sample', 'phrase']
+Initial pruning: 86 keys representing 98 words.
+
+ D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  |
+   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
+---+--------+--------+--------+--------+--------+-------+------+-------+---------|
+  1      119       95     0.11     0.03     4935       0      6    103       102
+
+119 branches in the tree. 95 dead ends. Max depth 3.
+{   'maple': 'phrases',
+    'peas': {('arms', 'mars'): 'help'},
+    'phrase': 'sample',
+    'sphere': 'plasma',
+    ('males', 'salem', 'meals'): 'perhaps',
+    ('phases', 'shapes'): 'palmer'}
+
+\end{verbatim}
+\normalsize
+\caption{Anagrams of \emph{sample phrase} using MIT 10000 word dictionary}
+\label{fig:smallsample}
+\end{figure}
+
+The tree is printed so that the anagrams may be located by looking at the 
+lines of the report. Looking at Figure~\ref{fig:smallsample}, we see that 
+\emph{maple} and \emph{phrases} is an easy anagram, the kind that Lisa Simpson
+posited for ``Jeremy Irons'' \ldots ``Jeremy's Iron,'' missing ``minor jersey.''
+
+The next line features a three word anagram, \emph{peas}, \emph{help}, and 
+either of the self-anagrams, \emph{arms} and \emph{mars}. Since we did not
+exclude the original terms, they appear in the third line. Contrast this 
+with the penultimate anagram in the list constructed from the larger dictionary.
+It shows that \emph{phrase} has two self-anagrams in the dictionary, 
+\emph{shaper} and \emph{seraph}.
+
+
+\begin{figure}
+\footnotesize
+\begin{verbatim}
+anagram --min-len 4 --dict words "sample phrase"
+
+['sample', 'phrase']
+Initial pruning: 262 keys representing 448 words.
+
+ D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  |
+   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
+---+--------+--------+--------+--------+--------+-------+------+-------+---------|
+  1      344      267     1.21     0.07    32558       0      3    363       301
+
+344 branches in the tree. 267 dead ends. Max depth 3.
+{   'alpha': 'empress',
+    'apple': 'smasher',
+    'harem': ('sapples', 'papless'),
+    'helms': 'sappare',
+    'papess': 'harmel',
+    'peeps': 'marshal',
+    'phases': ('palmer', 'lamper', 'relamp'),
+    'remap': 'hapless',
+    'slash': 'empaper',
+    'spasm': 'preheal',
+    'sperma': 'alephs',
+    'splash': 'ampere',
+    ('hames', 'shame'): 'slapper',
+    ('haps', 'hasp', 'pash'): 'resample',
+    ('hassel', 'hassle'): ('pampre', 'mapper', 'pamper'),
+    ('heaps', 'phase', 'shape'): ('lampers', 'sampler'),
+    ('lames', 'males', 'meals'): ('prehaps', 'perhaps'),
+    ('lamps', 'plasm', 'palms', 'psalm'): ('reshape', 'rephase'),
+    ('lams', 'slam', 'alms'): 'preshape',
+    ('peas', 'spae', 'apse', 'apes', 'pase'): {   'harp': ('mels', 'elms'),
+                                                  'hemp': 'lars',
+                                                  'lash': 'perm',
+                                                  'marl': 'pehs',
+                                                  'reps': 'halm',
+                                                  ('haps', 'hasp', 'pash'): 'merl',
+                                                  ('mars', 'arms', 'rams'): 'help',
+                                                  ('palm', 'lamp'): ('hers', 'resh'),
+                                                  ('raps', 'pars', 'spar', 'rasp'): 'helm',
+                                                  ('slap', 'pals', 'alps', 'salp', 'laps'): 'herm',
+                                                  ('spam', 'pams', 'samp', 'maps', 'amps'): (   'herl',
+                                                                                                'lehr')},
+    ('plasma', 'lampas'): ('sphere', 'herpes'),
+    ('seraph', 'phrase', 'shaper'): 'sample',
+    ('sperm', 'perms'): 'phaseal'}
+\end{verbatim}
+\normalsize
+\caption{Anagrams of \emph{sample phrase}}
+\label{fig:samplephrase}
+\end{figure}
+
+
+
+\vfill
+\begin{figure}[b]
+\footnotesize
+    \setlength\fboxsep{1cm}
+    \setlength\fboxrule{0pt}
+        {\raisebox{-1.2cm}{\includegraphics[width=0.14\textwidth]{/Users/gflanagi/Library/texmf/tex/urlogo.pdf}}}
+    \hfill{}
+    \begin{tabular}{ll}
+        \multicolumn{2}{l}{\textbf{George Flanagin, Provost Office}}\\
+        \multicolumn{2}{l}{\textbf{Data Analysis \& Data Science}}\\
+        \hline \\ [-1.9ex]
+        \textbf{Phone:}&+1.804.287.6392\\
+        \textbf{Address:}&Richmond Hall, Office 104\\
+        &114 UR Drive\\
+        &\UR\\
+        &Richmond, VA 23173\\
+        \textbf{Email:}&gflanagin@richmond.edu\\ 
+  \end{tabular}
+\end{figure}
 
 \end{document}
 
