@@ -24,6 +24,7 @@
 \newcommand{\ra}{$\overrightarrow{r}$\xspace}
 \newcommand{\rap}{$\overrightarrow{r'}$\xspace}
 
+\sloppy
 
 \begin{document}
 \maketitle
@@ -99,6 +100,7 @@ Fortunately, none of the above boundaries is difficult to selectively
 enforce in a program. 
 
 \subsection{The big picture of the search}
+\label{sec:bigpicture}
 
 At first, the search seems terribly complicated, and it is certainly
 not trivial. Everyone who has dealt with combinatorics knows how
@@ -569,7 +571,7 @@ class CountedWord(Counter):
 \label{fig:countermods}
 \end{figure}
 
-\subsection*{N-ary trees in Python}
+\subsection{N-ary trees in Python}
 
 GitHub is filled with trees for Python, and the reason is very
 likely that Python (as of 3.8) has no native tree in its standard
@@ -628,6 +630,186 @@ that they are not hashable, and therefore cannot be keys for the \lit{SloppyTree
 nor any other \lit{dict}-derived type. This is why the \verb|CountedWord.__str__| 
 operator returns the extra class member \verb|as_str| --- we really do not want
 to be constantly rebuilding them. 
+
+\section{Using the Anagrammar}
+\subsection{Command line parameters}
+
+Launching the program produces a familiar style of command line usage 
+message:
+
+\small
+\begin{verbatim}
+usage: anagrammar [--help] [--cpu CPU] --dictionary DICTIONARY [--min-len MIN_LEN]
+                  [--no-dups] [--none-of NONE_OF] [--order {0,1,2}] [-v {0,1,2,3}]
+                  phrase [phrase ...]
+anagrammar: error: the following arguments are required: phrase
+\end{verbatim}
+\normalsize
+
+\begin{figure}
+\small
+\begin{verbatim}
+positional arguments:
+  phrase                The phrase. If it contains spaces, it must be in quotes.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --cpu CPU             Set a maximum number of CPU seconds for execution.
+  --dictionary DICTIONARY
+                        Name of the dictionary of words, or a pickle of the
+                        dictionary.
+  --min-len MIN_LEN     Minimum length of any word in the anagram
+  --no-dups             Disallow words that were in the original phrase.
+  --none-of NONE_OF     Exclude all words in the given filename.
+  --order {0,1,2}       Key ordering: 0: random, 1:shortest first, 2:longest first
+  -v {0,1,2,3}, --verbose {0,1,2,3}
+                        Be chatty about what is taking place -- on a scale of 0 to 3
+\end{verbatim}
+\normalsize
+\caption{Anagrammar help text}
+\label{fig:helptext}
+\end{figure}
+
+A polite inquiry with \lit{--help} provides slightly more information as shown
+in Figure~\ref{fig:helptext}. Unfortunately, it is not possible to provide
+all the information needed in just a line or two. Let's examine the options
+in alphabetic order.
+
+\begin{description}
+\item[--cpu] This option is primarily useful to prevent runaway searches
+when the phrase being anagrammed is capable of making a large number of 
+anagrams. Given that the algorithm is tail-recursive and single-threaded,
+the processor time correlates well with the number of branches in the
+tree.
+
+\item[--dictionary] Half the fun in this program is changing out
+the dictionary of allowed words, and the other half is changing the
+original phrase. Only the non-suffix part of the filename needs to
+be given, and the Anagrammar will accept the name you give and assume
+that the pair of dictionary files is named \lit{.forward} and \lit{.reversed}
+ 
+\item[--min-len] This parameter is the most significant one in
+changing the results and altering the execution time. The default
+value is \lit{2}, which is too low for the most interesting results. 
+
+Note what happens when you allow a value of \lit{1} with the input
+phrase ``george flanagin.'' Using the two one-letter words of English,
+this amounts to running the algorithm twice with \lit{a} and \lit{i} 
+extracted in turn on the remaining 13 letters. 
+
+Note that there are problems at the other end, as well. For example,
+suppose the input phrase has 18 letters, and the words must be six letters
+long. With these initial conditions, the only possible combinations are three six-letter words
+or two words where the pairs are \lit{(9, 9)}, \lit{(8, 10)}, \lit{(7, 11)}, and \lit{(6, 12)} letters.
+
+\item[--no-dups] When this parameter is present and the input
+phrase is written as more than one word, \ie \emph{george flanagin} 
+rather than \emph{georgeflanagin}, none of the words are allowed 
+in the resulting solution set of anagrams.
+
+\item[--order] This parameter exists primarily to do demonstrations
+of the importance of the search order for anagrams. The options are:
+
+\begin{description}
+\item[0] random order, created by trying the possible keys in 
+an order provided by the Python builtin, \lit{random.sample}. The
+results are not repeatable, nor can the sample method be tuned.
+
+\item[1] shortest keys first. This is the ``correct''
+operation.
+
+\item[2] longest keys first. This method produces only a subset of
+the possible anagrams, but it is quite useful to illustrate the
+importance of search order.
+
+\end{description}
+
+\item[--verbose] At this time, only \lit{--verbose 3} has a profound
+effect on output. The high setting of verbosity creates an effective
+flow trace showing the keys being tried and exhausted, and the
+recursions noted.
+
+\end{description}
+
+\subsection{Example outputs}
+
+As mentioned in Section~\ref{sec:bigpicture}, the number of anagrams
+can become large, quickly, and for a variety of reasons -- the
+dictionary used, the letters making up the phrase. Therefore, the
+example that is used in this paper is a little contrived.
+
+First, let's take a look at the standard output that is created
+while the program is running in its standard mode as shown
+in Figure~\ref{fig:stdoutput}.  Note that the
+results will vary widely across operating systems and processors.
+
+\begin{figure}
+\small
+\begin{verbatim}
+Initial pruning: 880 keys representing 1054 words.
+
+D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  |
+  | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
+---+--------+--------+--------+--------+--------+-------+------+-------+---------|
+  1    26017     8186     2.18     0.07    32829       0      7   1269      8640
+
+26017 branches in the tree. 8186 dead ends. Max depth 3.
+\end{verbatim}
+\normalsize
+\caption{Standard program output.}
+\label{fig:stdoutput}
+\end{figure}
+
+On the line that precedes the table, we can read the size of the vocabulary
+that has qualified for use in the search. In this example, there are 880 keys
+(sorted strings) that represent 1054 words taken from the dictionary. 
+The output is updated every 100 branch evaluations as the program runs.
+
+The left-most column shows the current recursion depth, and it is more for
+evidence of operation than any practical use. It will always be \lit{1} when
+the program terminates. The other parameters are more significant.
+
+\begin{description}
+\item[branch evals] The count of the number of attempts to add a branch
+to the tree.
+
+\item[dead ends] The number of failed branches during tree construction.
+
+\item[user secs] The number of seconds the program has been executing.
+This value added to the \lit{sys secs} value gives the ``clock time''
+of operation.
+
+\item[sys secs] The number of seconds the system has been performing
+tasks on behalf of the program.
+
+\item[page faults] The number of times the program has had to request 
+a page from memory. Typically, this number gains most of its value when the
+dictionaries are read into memory, and it grows only slightly as the
+tree of results grows.
+
+\item[I/O sig] The number of times the program has stopped to perform
+I/O with storage (disc), as opposed to memory.
+
+\item[WAIT sig] The number of times the program has been told to wait
+by the operating system.
+
+\item[USEDQ] All operating systems allow a program to run for a specific
+amount of time, known as the \emph{quantum}, at which point the scheduler
+interrupts to be sure there is nothing more important for the current 
+core to do. The number of interruptions is highly dependent on the 
+CPU and the OS, but the ratio of \lit{USEDQ / (WAIT + I/O)} is a 
+clear indication of the degree to which the task is ``CPU-bound.''
+
+\item[Tails] The final remainder is called a \emph{tail}, a suitable
+name because the algorithm is \emph{tail recursive}. At the end
+of each failure to find an anagram, the terminating event is a 
+tail that makes no word in the dictionary, or a tail that has
+been discovered to not be decomposable into two or more words
+in the dictionary. To avoid traversing the same tails more than
+once, each new tail is added to a Python \lit{set}. The number
+shown in this column is the final total.
+
+\end{description}
 
 \end{document}
 

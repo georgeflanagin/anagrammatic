@@ -336,6 +336,10 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     print(f"{top_line}", file=sys.stderr)
     anagrams = find_words(original_phrase, words, XF_words, myargs.min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
+    self_anagrams = XF_words.get(CountedWord(original_phrase).as_str, None)
+    if self_anagrams is not None and len(self_anagrams) > 1:
+        self_anagrams = tuple([_ for _ in self_anagrams if not _ == original_phrase])
+        anagrams[original_phrase] = self_anagrams
     stats(0)
     print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
         file=sys.stderr)
