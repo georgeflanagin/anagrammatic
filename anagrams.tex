@@ -56,13 +56,13 @@ some point in history.}{Donald E. Knuth, 2011\\\emph{Combinatorial
 Algorithms, Part 1}, p. 519\\answer to Problem 25 in Section 7}
 
 \subsection{Definitions}
-My interest in anagrams started late in life. An episode of
+My interest in anagrams started later in life, at 37 years old. An episode of
 \emph{The Simpsons} named ``Lisa's Rival'' aired 11 September 1994,
 and in it Lisa goes to visit a new girl in the school, Allison
 Taylor. At Allison's house, Lisa is asked to join the Taylors in a
 specialized game of anagrams in which the names of famous people
 are rearranged to form descriptive anagrams: \emph{Alec Guinness}
-becomes \emph{genuine class} in the example.  Lisa was overwhelmed.
+becomes \emph{genuine class} in the example. Lisa was overwhelmed.
 
 To avoid offending or upsetting readers, I will be using my own
 name as the basis for the examples in this paper. Mercifully for
@@ -87,13 +87,14 @@ anagrams must have exactly three \emph{g}-s, two each of \emph{a},
 \item Anagrams must consist of complete words in some dictionary.
 Exactly which dictionary is a point of {\ae}sthetics, as is whether
 one should consider single letter words such as \lit{a} in English
-and Spanish, \lit{I} in English, and \lit{y}, \lit{o} in Spanish,
+\emph{and} Spanish, \lit{I} in English, and \lit{y}, \lit{o}, \lit{e}, \lit{u} in Spanish,
 and other oddities like apostrophes and diacritics.
 
 \item Additional rules are sometimes applied. Common constraints are:
 
 \begin{itemize}
-\item A maximum number of words in the anagrams of the original phrase.
+\item A maximum number of words in the anagrams of the original phrase,
+and the related metric, minimum word length.
 
 \item The elimination or inclusion of proper nouns in the derived
 anagrams.
@@ -111,7 +112,7 @@ enforce in a program.
 At first, the search seems terribly complicated, and it is certainly
 not trivial. Everyone who has dealt with combinatorics knows how
 quickly the the number of subsets grows, $16383$ in the case of
-fourteen letters, and the number of partitions, the fourteenth Bell
+fourteen letters (\ie $2^{14}-1$), and the number of partitions, the fourteenth Bell
 number, is $27,644,437$.\footnote{The Bell numbers are OEIS sequence
 A000110, \lit{https://oeis.org/A000110}}
 
@@ -222,7 +223,7 @@ such that \Dpp $\subset$ \Dp $\subset$ \D, in other words, a filter.\\
 \begin{samepage}
 \section{Notation}
 
-Anagrams suffer from their essence being relatively easy to state
+Anagrams suffer from being relatively easy to define
 in English, yet having no obvious representation in symbols. Given
 that programming languages are a type of symbolic representation,
 we will benefit from having a strong symbolic notation for anagrams,
@@ -307,7 +308,7 @@ phrase, and will leave a complementary set of remainders.
 Equation~\ref{eq:remainders} is well suited to the list comprehension
 construct in Python.
 
-At this point, we should also take note of the one-to-many relationship
+At this point, we should take note of the one-to-many relationship
 between \aw and the dictionary words \w. Words that are anagrams
 of each other share the same sorted representation of their letters,
 so in a key-value look up table, if the keys are of the form \aw,
@@ -322,9 +323,9 @@ key. Consider this specific case: $acer \longrightarrow \{acre,
 race, care\}$
 
 The sorted representation, $acer$, is meaningless. But we can freely
-substitute any of the three English words in anagrams that contain
+substitute any of the three English words in an anagram that contains
 one of them. Whether the collection of real words associated with
-a key is one or more than one, we only need to bother with the key.
+a key has one or more than one element, we only need to bother with the key.
 Thus, Equation~\ref{eq:remainders} becomes the more manageable
 expression seen here:
 
@@ -336,14 +337,17 @@ We cannot neglect the fact that $\forall w: w \odot w$, or in plain English,
 every word is an anagram of itself, so we must check to see whether each
 remainder is a key in the dictionary and a complement of some other
 key in the same dictionary. So before any recursive decent begins, we 
-must check for the ``two word'' solution.
+must check for the ``two word'' solution.\footnote{In fact, if the 
+original phrase is shorter than the longest words in the dictionary,
+we must include the ``one word'' solution. For example, if the target
+phrase is \emph{gimp count}, there is a one word solution to be found: computing.}
 
 \subsection{Recursion and bookkeeping}
 
 At this point, we have the algorithm reasonably well in mind, if not
 in hand. We take our collection of remainders and derive \Dpp from \Dp,
 and reapply the testing of all the keys in \Dpp to $\mathfrak{R}$.
-Practially speaking, the dictionary rapidly becomes small. 
+The dictionary rapidly becomes small. 
 
 Additionally, we can exploit the fact that we are keeping track of
 the \aw terms as we go to ensure that we do not test them more than
@@ -357,11 +361,11 @@ of the \aw terms we try.
 \newpage
 \section{Programming}
 
-This paper is being written in 2020, so the programming is definitely
+This paper is being written in 2021, so the programming is 
 done using Python~3. At this time, I am using Python~3.8, although
 I do not think any of the features that first appear in Python~3.8
 (such as the ``walrus operator,'' \lit{:=} ) are used in the code
-that appears here.
+that appears on GitHub.
 
 This is a paper about anagrams, Python's data structures, and rolling
 a few of our own data structures. It is not about PEP-8 style, sane
@@ -384,7 +388,7 @@ Both the page and Knuth's book are well worth exploring.}
 If you turn your attention to \lit{dictbuilder.py} you can get a
 feel for the approach taken to support anagrams. I have chosen to
 eliminate a large number of the dictionary entries by reading it
-this way which rids us of duplicates, capital letters, and punctuation
+in a way that rids us of duplicates, capital letters, and punctuation
 all at once, and I have chosen to supply an explicit list of $27$
 two letter words rather than the $160$ in the dictionary. Feel
 free to adjust the code to suit your use.
@@ -409,7 +413,9 @@ dictionary that can be made from this string of letters.
 $$\overrightarrow{w} \longrightarrow (w_0, w_1, w_2, .. w_n)$$
 
 This is termed the \emph{reverse dictionary}, and it is associated
-with the symbolic name \verb|r_dict|.
+with the symbolic name \verb|r_dict|. \inote{The container is represented
+as a \lit{tuple}, but it is also a \lit{set} because each element
+occurs exactly once.}
 
 \end{enumerate}
 
@@ -448,7 +454,7 @@ Counter({'g': 3, 'e': 2, 'a': 2, 'n': 2, 'o': 1, 'r': 1,
 
 \lit{Counter} defines a number of operations that are very close
 to ideal for our use in abstracted algebra to deal with anagrams.
-This is good in that we get a head start, but we do need to put in
+It is good that we get a head start, but we do need to put in
 a bit of work to customize the \lit{Counter} for our purposes.  The
 most direct route is the exploitation of Python's underlying object
 model.
@@ -465,31 +471,31 @@ we can pass directly to the \lit{sorted} builtin.
 \end{quote}
 
 As a subclass of \lit{dict}, \lit{Counter} has specialized the
-\lit{update()} method use the plus (\lit{+}) operator, and will do
+\lit{update()} method using the plus (\lit{+}) operator, and it will do
 exactly what we require to implement the method in our notation
 written as $\oplus$. Unfortunately for our work, the \lit{subtract()}
 function allows negative quantities,\footnote{The subclassed
 \lit{update()} also allows for negative quantities, but when we are
-adding objects whose count is greater than zero, there is no risk
+adding objects whose count is greater than zero there is no risk
 of getting a negative result.} which means we will need to modify
 it slightly in our subclass for it to be an implementation of
 $\ominus$.
 
-Figure~\ref{fig:countermods} code (with most comments removed for bevity)
-that accomplishes the following in a class named \lit{CountedWord}:
+The code in Figure~\ref{fig:countermods} (with most comments removed for bevity)
+accomplishes the required changes in a class named \lit{CountedWord}:
 
 \begin{enumerate}
 \item As a subclass of \lit{Counter}, we get to use the builtin
 methods.
 
 \item In keeping with the spirit of the \lit{Counter} implementation,
-we have superseded the meanings in the original class, so that $a - b$ does
-not modify $a$, and $a -= b$ is provided for the cases where that is
+we have superseded the meanings in the original class, so that \lit{a-b} does
+not modify \lit{a}, and \lit{a -= b} is provided for the cases where that is
 desired.
 
 \item We have provided a \verb|__str__()| operator that returns the
 sorted string of the characters in the counter. This is generally the
-most useful case if we want to, in effect, use a \lit{CountedWord} as 
+most useful case when we want to use a \lit{CountedWord} as 
 a key. 
 
 \end{enumerate}
@@ -598,8 +604,8 @@ not a very ornamental example.
 \item An important property of a tree can be derived from the
 definition: if we cut a tree into two pieces by removing the unique
 connection between any two nodes, the resulting two data structures
-are each trees. To look at it from the opposite direction, the
-direction more useful for a recursive search like finding anagrams,
+are each trees. To look at it from the opposite direction (the
+direction more useful for a recursive search like finding anagrams),
 we can take any two trees and perform a grafting operation at a
 node to join them into a single tree.
 
@@ -619,11 +625,12 @@ derived from \lit{dict}, with the following behaviors modified:
 creates a new key with the default value of an empty \lit{SloppyTree} in
 the case where the key is not found. The native \lit{dict} function
 raises a \lit{KeyError} when elements are not found; instead we want to
-automatically add them.
+automatically add them. This behavior is also found in \lit{defaultdict}.
 
 \item Consistent with \lit{class}-like behavior, \lit{SloppyTree} provides
 the trio of member access operations: \verb|__getattr__|, \verb|__setattr__|,
-and \verb|__delattr__|. 
+and \verb|__delattr__|. These operations are not required for the 
+case of anagrams, but \lit{SloppyTree} has other uses.
 
 \item Consistent with our desire to write as little code as possible, 
 \lit{SloppyTree} has a \verb|__str__| operator that invokes the \lit{pprint.pformat}
@@ -682,19 +689,19 @@ all the information needed in just a line or two. Let's examine the options
 in alphabetic order.
 
 \begin{description}
-\item[--cpu] This option is primarily useful to prevent runaway searches
+\item[\lit{--cpu}] This option is primarily useful to prevent runaway searches
 when the phrase being anagrammed is capable of making a large number of 
 anagrams. Given that the algorithm is tail-recursive and single-threaded,
 the processor time correlates well with the number of branches in the
 tree.
 
-\item[--dictionary] Half the fun in this program is changing out
+\item[\lit{--dictionary}] Half the fun in this program is changing out
 the dictionary of allowed words, and the other half is changing the
 original phrase. Only the non-suffix part of the filename needs to
 be given, and the Anagrammar will accept the name you give and assume
 that the pair of dictionary files is named \lit{.forward} and \lit{.reversed}
  
-\item[--min-len] This parameter is the most significant one in
+\item[\lit{--min-len}] This parameter is the most significant one in
 changing the results and altering the execution time. The default
 value is \lit{2}, which is too low for the most interesting results. 
 
@@ -708,17 +715,17 @@ suppose the input phrase has 18 letters, and the words must be six letters
 long. With these initial conditions, the only possible combinations are three six-letter words
 or two words where the pairs are \lit{(9, 9)}, \lit{(8, 10)}, \lit{(7, 11)}, and \lit{(6, 12)} letters.
 
-\item[--nice] Niceness is available for user programs, and the
+\item[\lit{--nice}] Niceness is available for user programs, and the
 higher the value, the more willing the OS will be to execute another
 program. On the other hand, it may give the program a longer quantum and
 fewer interruptions when it is running. 
 
-\item[--no-dups] When this parameter is present and the input
+\item[\lit{--no-dups}] When this parameter is present and the input
 phrase is written as more than one word, \ie \emph{george flanagin} 
 rather than \emph{georgeflanagin}, none of the words are allowed 
 in the resulting solution set of anagrams.
 
-\item[--order] This parameter exists primarily to do demonstrations
+\item[\lit{--order}] This parameter exists primarily to do demonstrations
 of the importance of the search order for anagrams. The options are:
 
 \begin{description}
@@ -735,7 +742,7 @@ importance of search order.
 
 \end{description}
 
-\item[--verbose] At this time, only \lit{--verbose 3} has a profound
+\item[\lit{--verbose}] At this time, only \lit{--verbose 3} has a profound
 effect on output. The high setting of verbosity creates an effective
 flow trace showing the keys being tried and exhausted, and the
 recursions noted.
@@ -915,9 +922,10 @@ Initial pruning: 262 keys representing 448 words.
                                                   ('mars', 'arms', 'rams'): 'help',
                                                   ('palm', 'lamp'): ('hers', 'resh'),
                                                   ('raps', 'pars', 'spar', 'rasp'): 'helm',
-                                                  ('slap', 'pals', 'alps', 'salp', 'laps'): 'herm',
-                                                  ('spam', 'pams', 'samp', 'maps', 'amps'): (   'herl',
-                                                                                                'lehr')},
+                                                  ('slap', 'pals', 'alps', 'salp', 'laps'): 
+                                                        'herm',
+                                                  ('spam', 'pams', 'samp', 'maps', 'amps'): 
+                                                        ('herl', 'lehr')},
     ('plasma', 'lampas'): ('sphere', 'herpes'),
     ('seraph', 'phrase', 'shaper'): 'sample',
     ('sperm', 'perms'): 'phaseal'}
