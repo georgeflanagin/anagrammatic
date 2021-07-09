@@ -6,6 +6,7 @@ from   typing import *
 import os
 import sys
 
+import argparse
 import collections
 from   collections import defaultdict
 import gc
@@ -25,7 +26,6 @@ __maintainer__ = 'George Flanagin'
 __email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 __license__ = 'MIT'
-
 
 
 this_os = platform.system()
@@ -169,7 +169,7 @@ three_letter_words = frozenset({
     })
 
 @trap
-def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
+def dictbuilder(myargs:argparse.Namespace) -> int:
     """
     Transform the usual layout system dictionary into a picked
     version of the same. 
@@ -184,6 +184,8 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
             and if a string, assume it is the name of a dictionary
             of proper nouns to be added. 
 
+    returns -- a value from the os.EX_ family of return codes.
+
     This code is written to enable option processing. It is not
     particularly efficient because it is only executed once.
     """
@@ -191,40 +193,43 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
     global two_letter_words
     global three_letter_words
 
-    with open(infile) as in_f:
-        data = in_f.read().split()
-    sys.stderr.write(f"{len(data)} words read from {infile}.\n")
+    data = []
+    for infile in myargs.input:
+        with open(infile) as in_f:
+            data.extend(in_f.read().split())
+        sys.stderr.write(f"{len(data)} words read from {infile}.\n")
 
 
-    # Let's use /our/ three and two letter words, Knuth's
-    # five letter words, and the Scrabble dictionary's four letter words.
-    data = [ _ for _ in data if len(_) > 5 ]
-    with open('./knuths.5757.five.letter.words.txt') as in_f:
-        five_letter_words = in_f.read().split()
-    data.extend(five_letter_words)
-    with open('./four.letter.words') as in_f:
-        four_letter_words = in_f.read().split()
-    data.extend(four_letter_words)
+    if not myargs.bare:
+        # Let's use /our/ three and two letter words, Knuth's
+        # five letter words, and the Scrabble dictionary's four letter words.
+        data = [ _ for _ in data if len(_) > 5 ]
+        with open('./knuths.5757.five.letter.words.txt') as in_f:
+            five_letter_words = in_f.read().split()
+        data.extend(five_letter_words)
+        with open('./four.letter.words') as in_f:
+            four_letter_words = in_f.read().split()
+        data.extend(four_letter_words)
 
-    print("Adding short words from internal list.")
-    data.extend(three_letter_words) 
-    data.extend(two_letter_words)
-    data.extend(('a', 'i'))
-    print(f"{len(data)} words ready for filtering.")
+        print("Adding short words from internal list.")
+        data.extend(three_letter_words) 
+        data.extend(two_letter_words)
+        data.extend(('a', 'i'))
+        print(f"{len(data)} words ready for filtering.")
 
     ###
     # Apply filters
     ###
-    if 'propernouns' not in kwargs:
+    if myargs.propernouns:
+        # First remove the capitalized words from what we have
+        # already read in.
         sys.stderr.write("removing proper nouns\n")
         data = [ _ for _ in data if _.islower() ]
         print(f"{len(data)} words remain after removing proper nouns.")
     
-    elif kwargs['propernouns'] is not True:
-        with open(kwargs['propernouns']) as f:
-            nouns = f.read().lower().split()
-        print(f"{len(nouns)} proper nouns added.")
-        data = data + nouns
+        with open(myargs.propernouns) as f:
+            nouns = set(f.read().lower().split())
+        data = set(data) - nouns
 
 
     ###
@@ -237,7 +242,7 @@ def dictbuilder(infile:str, outfile:str, **kwargs) -> int:
 
     # Count by length.
     words = collections.defaultdict(list)
-    for word in data:
+    for word in filtered_data:
         words[len(word)].append(word)
 
     for k in sorted(list(words.keys())):
@@ -289,9 +294,45 @@ def dictloader(filename:str) -> tuple:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage: python dictbuilder.py /full/path/to/dictionary/file mydictionaryname")
-        sys.exit(os.EX_DATAERR)
 
-    dictbuilder(sys.argv[1], sys.argv[2], **{})
-    sys.exit(os.EX_OK)
+    parser = argparse.ArgumentParser(prog="dictbuilder", 
+        description="A program to maintain dictionaries used in anagrammar.")
+
+    parser.add_argument('-d', '--bare', action='store_true',
+        help="Use only the words in the input dictionary rather than the built-in 2, 3, 4, and 5 letter words.")
+    parser.add_argument('-i', '--input', type='list', action='append', nargs='+',
+        required=True, help="The name[s] of the input dictionaries.") 
+    parser.add_argument('-n', '--propernouns', type=str, default=None,
+        help="If used, exclude the words found in the file (presumed to be proper nouns)")
+    parser.add_argument('outfile', type=str,
+        help="Name of the dictionary to be written (minus the suffixes).")
+
+    myargs = parser.parse_args()
+
+    sys.exit(dictbuilder(myargs))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

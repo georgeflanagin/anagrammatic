@@ -725,6 +725,14 @@ phrase is written as more than one word, \ie \emph{george flanagin}
 rather than \emph{georgeflanagin}, none of the words are allowed 
 in the resulting solution set of anagrams.
 
+\item[\lit{--none-of}] The value of this parameter is a string that
+is interpreted as a filename containing white-space delimited words to
+be removed from consideration. The methods for removing entries from
+a pair of \lit{dict}s with thousands of entries is a kludge, and this 
+option does not exist as an option to creating a custom dictionary.
+See Section~\ref{sec:dictbuilder} for information about constructing
+custom dictionaries.
+
 \item[\lit{--order}] This parameter exists primarily to do demonstrations
 of the importance of the search order for anagrams. The options are:
 
@@ -959,7 +967,10 @@ Initial pruning: 262 keys representing 448 words.
 
 \end{document}
 
+\section{Using dictbuilder}
 
+There is a file in the source code name \lit{dictbuilder.py}. It is both
+a standalone program and an \lit{import} for this project. 
 
 
 
