@@ -943,6 +943,97 @@ Initial pruning: 262 keys representing 448 words.
 \label{fig:samplephrase}
 \end{figure}
 
+\section{Building dictionaries}
+
+The source code contains a single file named \lit{dictbuilder.py}. It is both
+a standalone program and an \lit{import} for this project because it contains
+the function \lit{dictloader}. The dictionaries it builds are stored as 
+Python pickles, and it offers useful command line switches to control
+the way the dictionaries are constructed.
+
+\subsection{Basic operations}
+
+\begin{figure}
+\small
+\begin{verbatim}
+Usage: dictbuilder [-h] [-d] -i INPUT [INPUT ...] [-n PROPERNOUNS] outfile
+
+A program to maintain dictionaries used in anagrammar.
+
+positional arguments:
+  outfile               Name of the dictionary to be written (minus the suffixes).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b, --bare            Use only the words in the input dictionary rather than the 
+                        built-in 2, 3, 4, and 5 letter words.
+  -i INPUT [INPUT ...], --input INPUT [INPUT ...]
+                        The name[s] of the input dictionaries.
+  -n PROPERNOUNS, --propernouns PROPERNOUNS
+                        If used, exclude the words found in the file (presumed to 
+                        be proper nouns)
+\end{verbatim}
+\normalsize
+\caption{Command line options for the dictbuilder}
+\label{fig:dictbuilderoptions}
+\end{figure}
+
+Running the \lit{dictbuilder} is much like running the \anagrammar. The help
+text is shown in Figure~\ref{fig:dictbuilderoptions}. The options offer
+considerable flexibility for making custom dictionaries. \inote{When a 
+dictionary is loaded by the \anagrammar, the entire file is read. There is 
+no option to inspect the dictionary while it is being read.} 
+
+\begin{description}
+\item[\lit{--bare}] Normal operation is to use the lists of short words that
+are a part of the project. The 1, 2, and 3-letter words are in the source
+code itself, represented as \lit{frozenset}s of \lit{str}. The 4-letter
+words are in the file \lit{four.letter.words} and the 5-letter words 
+are those of Donald Knuth, stored in the file \lit{knuths.5757.five.letter.words.txt}.
+These may not be the ones you want to use, primarily because Knuth's list of
+words is unusually large, exceeding even the Webster's International dictionary.
+
+\item[\lit{--input}] This argument can be repeated, so that you may
+build a dictionary from several, merged sources. Normal operation is effectively
+the following:
+
+\begin{quote}
+\small
+\lit{-i four.letter.words -i knuths.5757.five.letter.words -i yourownfile}
+\end{quote}
+
+\item[\lit{--propernouns}] If this option is not present, all the input
+dictionaries are used \emph{as is}. If it is present, it removes all the 
+words that appear in the dictionaries with an initial capital letter, and
+then removes all the words in the filename associated with the option, 
+regardless of whether they are capitalized.
+
+\item[outfile] The name should be supplied without suffixes, because the
+construction process creates the two dictionaries as separate files,
+providing its own suffixes, \lit{.forward} and \lit{.reversed}.
+
+\end{description}
+
+\subsection{Methods}
+
+The building of the dictionary takes place with the steps in the
+logical order to avoid conflicts. The so-called \emph{forward} dictionary
+is built first, with the words read from the various sources as the
+keys, and the letters that make up each word, sorted in the standard
+lexicographic way, as the values.
+
+The construction of the reversed dictionary requires more finesse.
+The construction iterates over the values of the forward dictionary to
+use as keys, and the value is a \lit{defaultdict} of \lit{list}, to which the 
+corresponding words are appended. Once constructed, neither dictionary
+is mutable, so the values in the reversed dictionary are transformed into
+\lit{tuple}s before the pickling process.
+
+Pickles are generally faster to read than write, and they have the
+advantage that type information is stored with the data, allowing
+in memory data structures to be populated directly by reading the
+pickle. 
+
 
 
 \vfill
@@ -950,7 +1041,7 @@ Initial pruning: 262 keys representing 448 words.
 \footnotesize
     \setlength\fboxsep{1cm}
     \setlength\fboxrule{0pt}
-        {\raisebox{-1.2cm}{\includegraphics[width=0.14\textwidth]{/Users/gflanagi/Library/texmf/tex/urlogo.pdf}}}
+        {\raisebox{-1.2cm}{\includegraphics[width=0.14\textwidth]{urlogo.pdf}}}
     \hfill{}
     \begin{tabular}{ll}
         \multicolumn{2}{l}{\textbf{George Flanagin, Provost Office}}\\
@@ -966,11 +1057,6 @@ Initial pruning: 262 keys representing 448 words.
 \end{figure}
 
 \end{document}
-
-\section{Using dictbuilder}
-
-There is a file in the source code name \lit{dictbuilder.py}. It is both
-a standalone program and an \lit{import} for this project. 
 
 
 

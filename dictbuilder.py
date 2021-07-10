@@ -300,7 +300,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-d', '--bare', action='store_true',
         help="Use only the words in the input dictionary rather than the built-in 2, 3, 4, and 5 letter words.")
-    parser.add_argument('-i', '--input', type='list', action='append', nargs='+',
+    parser.add_argument('-i', '--input', type=list, action='append', nargs='+',
         required=True, help="The name[s] of the input dictionaries.") 
     parser.add_argument('-n', '--propernouns', type=str, default=None,
         help="If used, exclude the words found in the file (presumed to be proper nouns)")
