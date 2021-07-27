@@ -298,6 +298,7 @@ def dictloader(filename:str) -> tuple:
 
     returns -- forward, reversed
     """
+    if filename.endswith('.'): filename = filename[:-1]
 
     with open(f"{filename}.forward", 'rb') as f:
         forward_dict = pickle.load(f)

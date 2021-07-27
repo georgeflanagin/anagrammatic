@@ -11,9 +11,11 @@ import sys
 
 import argparse
 import math
+import multiprocessing
 import platform
 import random
 import resource
+import string
 import time
 
 ###
@@ -37,6 +39,17 @@ __maintainer__ = 'George Flanagin'
 __email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 __license__ = 'MIT'
+
+###
+# There is no standard way to do this, particularly with virtualization.
+###
+def cpucounter() -> int:
+    names = {
+        'macOS': lambda : os.cpu_count(),
+        'Linux': lambda : len(os.sched_getaffinity(0)),
+        'Windows' : lambda : os.cpu_count()
+        }
+    return names[platform.platform().split('-')[0]]()
 
 ###
 # Just for curiosity, I wonder how long these things take.
@@ -66,13 +79,11 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     Print the command line arguments as they would have been if the user
     had specified every possible one (including optionals and defaults).
     """
-    global vvv
-
     if not return_it: print("")
     opt_string = ""
     for _ in sorted(vars(args).items()):
         opt_string += " --"+ _[0].replace("_","-") + " " + str(_[1])
-    if not return_it and vvv: print(opt_string + "\n", file=sys.stderr)
+    if not return_it: print(opt_string + "\n", file=sys.stderr)
 
     return opt_string if return_it else ""
 
@@ -272,16 +283,16 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     vvv = myargs.verbose
 
     # If we have been given a limit on CPU, set it.
-    if myargs.cpu > 0: 
-        print(f"This execution is being limited to {myargs.cpu} CPU seconds.")
-        resource.setrlimit(resource.RLIMIT_CPU, (int(myargs.cpu), int(myargs.cpu)))
+    if myargs.cpu_time > 0: 
+        print(f"This execution is being limited to {myargs.cpu_time} CPU seconds.")
+        resource.setrlimit(resource.RLIMIT_CPU, (int(myargs.cpu_time), int(myargs.cpu_time)))
 
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
     # of what it was.
     os.nice(7)
 
-    original_words = [ _.lower() for _ in myargs.phrase ]
+    original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
     original_phrase = "".join(original_words)
     original_phrase_XF = CountedWord(original_phrase)
 
@@ -344,20 +355,26 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
         file=sys.stderr)
     print(f"{anagrams}")
+    print(f"{len(anagrams)} anagrams for {myargs.phrase} were found.")
 
     return sys.exit(os.EX_OK)
 
 
 if __name__ == "__main__":
 
+    
+
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
-    parser.add_argument('--cpu', type=float, default=0,
+    parser.add_argument('-t', '--cpu-time', type=float, default=0,
         help="Set a maximum number of CPU seconds for execution.")
-    parser.add_argument('--dictionary', type=str, required=True,
+    parser.add_argument('-x', '--cores', type=int, default=1, 
+        choices=range(1, cpucounter()),
+        help="Number of cores on which to execute.")
+    parser.add_argument('-d', '--dictionary', type=str, required=True,
         help="Name of the dictionary of words, or a pickle of the dictionary.")
-    parser.add_argument('--min-len', type=int, default=2,
+    parser.add_argument('-m', '--min-len', type=int, default=2,
         help="Minimum length of any word in the anagram")
     parser.add_argument('--nice', type=int, choices=range(0, 20), default=0,
         help="Niceness may affect execution time.")
@@ -370,7 +387,7 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', type=int, default=0, choices=(0, 1, 2, 3),
         help="Be chatty about what is taking place -- on a scale of 0 to 3")
 
-    parser.add_argument('phrase', type=str, nargs='+',
+    parser.add_argument('phrase', type=str,
         help="The phrase. If it contains spaces, it must be in quotes.")
 
     myargs = parser.parse_args()
