@@ -27,7 +27,6 @@ __status__ = 'Teaching example'
 __license__ = 'MIT'
 
 
-
 class SloppyTree: pass
 class SloppyTree(dict):
     """
@@ -76,13 +75,20 @@ class SloppyTree(dict):
 
     def __len__(self) -> int:
         """
+        return the number of nodes/branches.
+        """
+        return sum(1 for _ in (i for i in self.traverse(False)))
+
+
+    def __invert__(self) -> int: 
+        """
         return the number of paths from the root node to the leaves,
-        or if you think of it this way, the number of branches.
+        ignoring the nodes along the way.
         """
         return sum(1 for _ in (i for i in self.leaves()))
 
 
-    def leaves(self) -> str:
+    def leaves(self) -> object:
         """
         Walk the leaves only, left to right.
         """ 
@@ -93,11 +99,19 @@ class SloppyTree(dict):
                 yield v
 
 
-    def traverse(self, with_indicator=True) -> Union[Tuple[str, int], str]:
+    def __iter__(self) -> object:
+        """
+        NOTE: dict.__iter__ only sees keys, but SloppyTree.__iter__
+        also sees the leaves.
+        """
+        return self.traverse
+
+
+    def traverse(self, with_indicator:bool=True) -> Union[Tuple[object, int], object]:
         """
         Emit all the nodes of a tree left-to-right and top-to-bottom.
         The bool is included so that you can know whether you have reached
-        a leaf. (NOTE: dict.__iter__ only sees keys.)
+        a leaf. 
 
         returns -- a tuple with the value of the node, and 1 => key, and 0 => leaf.
 
@@ -110,7 +124,7 @@ class SloppyTree(dict):
         for k, v in self.items():
             yield k, 1 if with_indicator else k
             if isinstance(v, dict):
-                yield from v.traverse()
+                yield from v.traverse(with_indicator)
             else:
                 yield v, 0 if with_indicator else v
 
@@ -120,3 +134,17 @@ class SloppyTree(dict):
         Printing one of these things requires a bit of finesse.
         """
         return pprint.pformat(self, compact=True, indent=4, width=100)
+
+
+if __name__ == "__main__":
+    t = SloppyTree()
+    t.a.b.c
+    t.a.b.c.d = 6
+    t.a.b.d = 5
+    t.a['c'].sixteen = "fred"
+
+    for v, indicator in t.traverse():
+        print(f"{v}:{indicator}")
+
+    print(f"{t}")
+    
