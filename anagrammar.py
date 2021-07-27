@@ -41,17 +41,6 @@ __status__ = 'Teaching example'
 __license__ = 'MIT'
 
 ###
-# There is no standard way to do this, particularly with virtualization.
-###
-def cpucounter() -> int:
-    names = {
-        'macOS': lambda : os.cpu_count(),
-        'Linux': lambda : len(os.sched_getaffinity(0)),
-        'Windows' : lambda : os.cpu_count()
-        }
-    return names[platform.platform().split('-')[0]]()
-
-###
 # Just for curiosity, I wonder how long these things take.
 ###
 start_time = time.time()
@@ -72,6 +61,19 @@ top_line ="""
    | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
 ---+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
 formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9}"
+
+###
+# There is no standard way to do this, particularly with virtualization.
+###
+@trap
+def cpucounter() -> int:
+    names = {
+        'macOS': lambda : os.cpu_count(),
+        'Linux': lambda : len(os.sched_getaffinity(0)),
+        'Windows' : lambda : os.cpu_count()
+        }
+    return names[platform.platform().split('-')[0]]()
+
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:

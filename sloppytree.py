@@ -79,10 +79,7 @@ class SloppyTree(dict):
         return the number of paths from the root node to the leaves,
         or if you think of it this way, the number of branches.
         """
-        i = 0
-        for _ in self.leaves():
-            i += 1
-        return i
+        return sum(1 for _ in (i for i in self.leaves()))
 
 
     def leaves(self) -> str:
@@ -96,7 +93,7 @@ class SloppyTree(dict):
                 yield v
 
 
-    def traverse(self) -> Tuple[str, int]:
+    def traverse(self, with_indicator=True) -> Union[Tuple[str, int], str]:
         """
         Emit all the nodes of a tree left-to-right and top-to-bottom.
         The bool is included so that you can know whether you have reached
@@ -104,17 +101,18 @@ class SloppyTree(dict):
 
         returns -- a tuple with the value of the node, and 1 => key, and 0 => leaf.
 
-        Usage:
-            for node, indicator in mytree.traverse():
+        Usages:
+            for node, indicator in mytree.traverse(): ....
+            for node in mytree.traverse(with_indicator=False): ....
                 ....
         """
 
         for k, v in self.items():
-            yield k, 1
+            yield k, 1 if with_indicator else k
             if isinstance(v, dict):
                 yield from v.traverse()
             else:
-                yield v, 0
+                yield v, 0 if with_indicator else v
 
 
     def __str__(self) -> str:
