@@ -303,6 +303,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # We cannot work without a dictionary, so let's get it first.
     print(myargs.phrase)
     words, XF_words = dictloader(myargs.dictionary)
+    print(f"{len(words)=} {len(XF_words)}")
 
     ###
     # We may not want to use any of the words that were in
