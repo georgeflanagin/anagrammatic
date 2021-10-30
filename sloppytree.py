@@ -99,14 +99,6 @@ class SloppyTree(dict):
                 yield v
 
 
-    def __iter__(self) -> object:
-        """
-        NOTE: dict.__iter__ only sees keys, but SloppyTree.__iter__
-        also sees the leaves.
-        """
-        return self.traverse
-
-
     def traverse(self, with_indicator:bool=True) -> Union[Tuple[object, int], object]:
         """
         Emit all the nodes of a tree left-to-right and top-to-bottom.
