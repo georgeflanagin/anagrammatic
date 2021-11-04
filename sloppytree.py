@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+SloppyTree is derived from Python's dict object. It allows
+one to create an n-ary tree of arbitrary complexity whose
+members may be accessed by the methods in dict or the object.member
+syntax, depending on the usefulness of either expression. 
+"""
+
+
 import typing
 from   typing import *
 
@@ -10,14 +18,13 @@ import sys
 
 # Credits
 __author__ = 'George Flanagin'
-__copyright__ = 'Copyright 2020'
+__copyright__ = 'Copyright 2021'
 __credits__ = None
-__version__ = str(1/math.pi)
+__version__ = str(math.pi**2)[:5]
 __maintainer__ = 'George Flanagin'
-__email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
+__email__ = ['me+ur@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 __license__ = 'MIT'
-
 
 
 class SloppyTree: pass
@@ -66,31 +73,52 @@ class SloppyTree(dict):
         return self
 
 
-    def _leaves(self) -> str:
+    def __len__(self) -> int:
+        """
+        return the number of nodes/branches.
+        """
+        return sum(1 for _ in (i for i in self.traverse(False)))
+
+
+    def __invert__(self) -> int: 
+        """
+        return the number of paths from the root node to the leaves,
+        ignoring the nodes along the way.
+        """
+        return sum(1 for _ in (i for i in self.leaves()))
+
+
+    def leaves(self) -> object:
         """
         Walk the leaves only, left to right.
         """ 
         for k, v in self.items():
             if isinstance(v, dict):
-                yield from self._leaves(v)
+                yield from v.leaves()
             else:
                 yield v
 
 
-    def _walk(self, level=0) -> Tuple[str, int]:
+    def traverse(self, with_indicator:bool=True) -> Union[Tuple[object, int], object]:
         """
         Emit all the nodes of a tree left-to-right and top-to-bottom.
         The bool is included so that you can know whether you have reached
-        a leaf. (NOTE: dict.__iter__ only sees keys.)
+        a leaf. 
+
+        returns -- a tuple with the value of the node, and 1 => key, and 0 => leaf.
+
+        Usages:
+            for node, indicator in mytree.traverse(): ....
+            for node in mytree.traverse(with_indicator=False): ....
+                ....
         """
+
         for k, v in self.items():
-            level += 1
-            yield k, level
+            yield k, 1 if with_indicator else k
             if isinstance(v, dict):
-                yield from self._walk(level)
-                level -= 1
+                yield from v.traverse(with_indicator)
             else:
-                yield v, None
+                yield v, 0 if with_indicator else v
 
 
     def __str__(self) -> str:
@@ -98,3 +126,17 @@ class SloppyTree(dict):
         Printing one of these things requires a bit of finesse.
         """
         return pprint.pformat(self, compact=True, indent=4, width=100)
+
+
+if __name__ == "__main__":
+    t = SloppyTree()
+    t.a.b.c
+    t.a.b.c.d = 6
+    t.a.b.d = 5
+    t.a['c'].sixteen = "fred"
+
+    for v, indicator in t.traverse():
+        print(f"{v}:{indicator}")
+
+    print(f"{t}")
+    

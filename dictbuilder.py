@@ -169,6 +169,21 @@ three_letter_words = frozenset({
     })
 
 @trap
+def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
+    """
+    Print the command line arguments as they would have been if the user
+    had specified every possible one (including optionals and defaults).
+    """
+    if not return_it: print("")
+    opt_string = ""
+    for _ in sorted(vars(args).items()):
+        opt_string += " --"+ _[0].replace("_","-") + " " + str(_[1])
+    if not return_it: print(opt_string + "\n", file=sys.stderr)
+
+    return opt_string if return_it else ""
+
+
+@trap
 def dictbuilder(myargs:argparse.Namespace) -> int:
     """
     Transform the usual layout system dictionary into a picked
@@ -194,10 +209,10 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     global three_letter_words
 
     data = []
-    for infile in myargs.input:
-        with open(infile) as in_f:
-            data.extend(in_f.read().split())
-        sys.stderr.write(f"{len(data)} words read from {infile}.\n")
+    infile = myargs.input
+    with open(infile) as in_f:
+        data.extend(in_f.read().split())
+    sys.stderr.write(f"{len(data)} words read from {infile}.\n")
 
 
     if not myargs.bare:
@@ -264,11 +279,11 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     ###
     reversed_dict = { k : tuple(v) for k, v in reversed_dict.items() }
 
-    with open(f"{outfile}.reversed", 'wb') as out:
+    with open(f"{myargs.outfile}.reversed", 'wb') as out:
         pickle.dump(reversed_dict, out)
         sys.stderr.write("reversed dict pickled and written\n")
 
-    with open(f"{outfile}.forward", 'wb') as out:
+    with open(f"{myargs.outfile}.forward", 'wb') as out:
         pickle.dump(filtered_data, out)
         sys.stderr.write("forward dict pickled and written\n")
 
@@ -283,6 +298,7 @@ def dictloader(filename:str) -> tuple:
 
     returns -- forward, reversed
     """
+    if filename.endswith('.'): filename = filename[:-1]
 
     with open(f"{filename}.forward", 'rb') as f:
         forward_dict = pickle.load(f)
@@ -300,7 +316,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-d', '--bare', action='store_true',
         help="Use only the words in the input dictionary rather than the built-in 2, 3, 4, and 5 letter words.")
-    parser.add_argument('-i', '--input', type=list, action='append', nargs='+',
+    parser.add_argument('-i', '--input', type=str, 
         required=True, help="The name[s] of the input dictionaries.") 
     parser.add_argument('-n', '--propernouns', type=str, default=None,
         help="If used, exclude the words found in the file (presumed to be proper nouns)")
@@ -308,6 +324,7 @@ if __name__ == '__main__':
         help="Name of the dictionary to be written (minus the suffixes).")
 
     myargs = parser.parse_args()
+    dump_cmdline(myargs)
 
     sys.exit(dictbuilder(myargs))
 

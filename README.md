@@ -56,15 +56,15 @@ your input phrase in the list of anagrams at the end.
 resulting anagrams. It is a better idea to build a special dictionary if
 this is a list of words you plan to use regularly.
 
-`--min-len` This tells the anagrammar the shortest word to consider. 
+`-m`, `--min-len` This tells the anagrammar the shortest word to consider. 
 
-`--dictionary` In this project, I have provided two dictionaries already
+`-d`, `--dictionary` In this project, I have provided two dictionaries already
 compiled, but you can compile your own. The one named `mit10000` is built
 from the 10,000 most common words in English. The one named `words` is much
 larger, coming from the New Webster's Dictionary that is included with 
 Linux in `/usr/share/dict/words`. Each dictionary is a pair of files.
 
-`--cpu` The program can be caused to stop after a given number of seconds
+`-t`, `--cpu-time` The program can be caused to stop after a given number of seconds
 of execution. I put this in when I was developing the program, and I never got
 around to removing it.
 

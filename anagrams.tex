@@ -35,7 +35,8 @@ Anagrams are fun and difficult. They are an excellent way to explore
 Python's data structures, and an excuse to develop a few new ones
 expressly for this purpose. This paper defines an efficient algorithm
 for finding all anagrams of a given collection of letters using the
-Python Standard Library for the base code, and the system dictionary
+Python Standard Library for the base code, and the system dictionary,
+or some other list of words,
 as a source for allowed words. 
 
 This program is the \anagrammar. Its source code and this documentation
@@ -58,11 +59,11 @@ Algorithms, Part 1}, p. 519\\answer to Problem 25 in Section 7}
 \subsection{Definitions}
 My interest in anagrams started later in life, at 37 years old. An episode of
 \emph{The Simpsons} named ``Lisa's Rival'' aired 11 September 1994,
-and in it Lisa goes to visit a new girl in the school, Allison
+and in it Lisa visits a new girl in the school, Allison
 Taylor. At Allison's house, Lisa is asked to join the Taylors in a
 specialized game of anagrams in which the names of famous people
 are rearranged to form descriptive anagrams: \emph{Alec Guinness}
-becomes \emph{genuine class} in the example. Lisa was overwhelmed.
+becomes \emph{genuine class} in the show's example. Lisa was overwhelmed.
 
 To avoid offending or upsetting readers, I will be using my own
 name as the basis for the examples in this paper. Mercifully for
@@ -72,34 +73,38 @@ the starting point the \emph{target phrase}, or just the \emph{target}.
 
 To begin, we must have a definition of an anagram. Anagrams
 always appear in pairs.  It makes no sense to say ``\emph{George
-Flanagin} is an anagram," without stating its partner phrase, the
-most descriptive of which may be \emph{long fearing age}. 
+Flanagin} is an anagram," without stating its partner phrase, and the
+one most suited to Lisa Simpson's game may be
+\emph{long fearing age}. 
 
 The technical properties of an anagram are:
 
 \begin{enumerate}
-\item Two phrases are anagrams of each other if they contain the
-same set of letters. In the case of \emph{George Flanagin}, its
+\item Two phrases are anagrams of each other iff all the letters of
+one phrase are present in the other, the same counts for each letter
+present.
+In the case of \emph{George Flanagin}, its
 anagrams must have exactly three \emph{g}-s, two each of \emph{a},
 \emph{e}, and \emph{n}, and one each of \emph{f}, \emph{i}, \emph{l},
 \emph{o}, and \emph{r}.  Fourteen letters.
 
-\item Anagrams must consist of complete words in some dictionary.
+\item Each phrase in a pair of anagrams must consist of one or more complete words in some dictionary.
 Exactly which dictionary is a point of {\ae}sthetics, as is whether
 one should consider single letter words such as \lit{a} in English
-\emph{and} Spanish, \lit{I} in English, and \lit{y}, \lit{o}, \lit{e}, \lit{u} in Spanish,
-and other oddities like apostrophes and diacritics.
+\emph{and} Spanish, \lit{I} in English, and \lit{y}, \lit{o}, \lit{e}, \lit{u} in Spanish.
+For the purpose of this paper, we will ignore diacritics.
 
 \item Additional rules are sometimes applied. Common constraints are:
 
 \begin{itemize}
-\item A maximum number of words in the anagrams of the original phrase,
+\item A maximum or minimum number of words in the anagrams of the original phrase,
 and the related metric, minimum word length.
 
 \item The elimination or inclusion of proper nouns in the derived
 anagrams.
 
-\item A lack of words shared with the original phrase.
+\item A lack of words shared with the original phrase. More discussion of this 
+constraint lies ahead.
 \end{itemize}
 \end{enumerate}
 
@@ -123,7 +128,7 @@ search for anagrams except \emph{the quick brown fox jumped over
 the lazy dog}, we will eliminate all the words that contain any
 letter not found in the target. In the case of our example, we can
 eliminate not only all the words that begin with $[b-d,h,j,k,m,n,p,q,s-z]$,
-but all the words that contain even one of those letters. Doing no
+but all the words that contain one of those letters. Doing no
 programming at all, we can put the upper limit on the number of
 words to examine as $2777$ if only lower case words are considered,
 and $5032$ if we allow words that normally have capitals in
@@ -1038,7 +1043,7 @@ pickle.
 
 \vfill
 \begin{figure}[b]
-\footnotesize
+    \footnotesize
     \setlength\fboxsep{1cm}
     \setlength\fboxrule{0pt}
         {\raisebox{-1.2cm}{\includegraphics[width=0.14\textwidth]{urlogo.pdf}}}
@@ -1053,7 +1058,8 @@ pickle.
         &\UR\\
         &Richmond, VA 23173\\
         \textbf{Email:}&gflanagin@richmond.edu\\ 
-  \end{tabular}
+        \textbf{ORCID}&0000-0002-2084-5831\\
+    \end{tabular}
 \end{figure}
 
 \end{document}
