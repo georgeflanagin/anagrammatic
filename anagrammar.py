@@ -92,6 +92,12 @@ def cpucounter() -> int:
     return names[platform.platform().split('-')[0]]()
 
 
+def debug(s:str) -> bool:
+    global vvv
+    if vvv > 3: sys.stderr.write(f"{s}\n")
+    return vvv > 2
+
+
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     """
@@ -140,13 +146,12 @@ def find_words(phrase:str,
     global order
     global remainders
     global tries
-    global vvv
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
     if len(phrase) < min_len * 2: 
         deadends += 1
-        vvv and sys.stderr.write(f"{phrase.as_str} too short.")
+        debug(f"{phrase.as_str} too short.")
         return None
 
     longest_branch_explored = max(depth+1, longest_branch_explored)
@@ -175,32 +180,31 @@ def find_words(phrase:str,
         # "key" maps to at least one word, and "remainder" is the
         # part about which we are uncertain.
         remainder = phrase - key
-        vvv > 2 and sys.stderr.write(f"{key=} remainder={remainder.as_str}\n")
+        debug(f"{key=} remainder={remainder.as_str}")
 
         if len(remainder.as_str) < min_len:
-            vvv > 2 and sys.stderr.write(f"len({remainder.as_str}) < {min_len} \n")
+            debug(f"len({remainder.as_str}) < {min_len}")
             continue
         
         if str(remainder) in exhausted_keys: 
-            vvv > 2 and sys.stderr.write(f"{remainder.as_str} is exhausted.\n")
+            debug(f"{remainder.as_str} is exhausted.")
             continue
 
         # Is there at least one word that can be made from the
         # complete remainder string?
         if str(remainder) in r_dict:
-            vvv > 2 and sys.stderr.write(f"{remainder.as_str} in r_dict\n")
+            debug(f"{remainder.as_str} in r_dict")
             matches[key] = remainder
             continue
 
         else:
             if len(remainder) < min_len*2:
-                vvv > 2 and sys.stderr.write(
-                    f"{remainder.as_str} too short to recurse.\n")
+                debug(f"{remainder.as_str} too short to recurse.")
                 continue
             else:
-                vvv > 2 and sys.stderr.write(
-                    f"{remainder.as_str} recursing to level {depth+1}\n")
-                matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
+                debug(f"{remainder.as_str} recursing to level {depth+1}")
+                matches[key] = find_words(
+                    remainder, f_dict, r_dict, min_len, depth=depth+1)
 
         if not matches[key]: 
             deadends += 1
@@ -208,7 +212,7 @@ def find_words(phrase:str,
 
         # At this point, we have thoroghly examined remainder, and there is no
         # reason to look at it again.
-        vvv > 2 and sys.stderr.write(f"{remainder.as_str} is a new dead end.\n")
+        debug(f"{remainder.as_str} is a new dead end.")
         if depth==1:
             exhausted_keys.add(key)
             num_exhausted += 1
@@ -331,7 +335,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # of what it was.
     os.nice(7)
 
-    original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
+    original_words = [ _ for _ in myargs.phrase.lower() 
+        if _ in string.ascii_lowercase ]
     original_phrase = "".join(original_words)
     original_phrase_XF = CountedWord(original_phrase)
 
@@ -401,9 +406,6 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
 
 if __name__ == "__main__":
-
-    
-
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
@@ -422,7 +424,7 @@ if __name__ == "__main__":
         help="Disallow words that were in the original phrase.")
     parser.add_argument('--none-of', type=str, default=None,
         help="Exclude all words in the given filename.")
-    parser.add_argument('--order', type=int, choices=(0, 1, 2), default=1,
+    parser.add_argument('-o', '--order', type=int, choices=(0, 1, 2), default=1,
         help="Key ordering: 0: random, 1:shortest first, 2:longest first")
     parser.add_argument('-v', '--verbose', type=int, default=0, choices=(0, 1, 2, 3),
         help="Be chatty about what is taking place -- on a scale of 0 to 3")
