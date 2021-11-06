@@ -10,12 +10,12 @@ import os
 import sys
 
 import argparse
+from   functools import total_ordering
 import math
 import multiprocessing
+from   multiprocessing import shared_memory.ShareableList
 import platform
-import random
 import resource
-import string
 import time
 
 ###
@@ -40,6 +40,72 @@ __email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 __license__ = 'MIT'
 
+class PIDlist:
+
+    __slots__ = {
+        'smm':"Shared Memory Manager process handle",
+        'name':"name of the memory block containing the PIDs.",
+        'size':"number of elements in the list",
+        'pids':"the list of associated pids."
+        }
+
+    def __init__(self, smm:object, size:int=52, name:str=None):
+        """
+        Note the differing initialization based on whether we are given the
+        name of the memory block.
+        """
+        if name is None:
+            self.smm  = smm
+            self.pids = smm.ShareableList([0]*size)
+            self.size = size
+            self.name = self.pids.shm.name
+        else:
+            self.smm = smm
+            self.pids = smm.ShareableList(name=name)
+            self.size = self.pids._list_len
+            self.name = name
+
+        # No matter what, we add our own PID.
+        self += os.getpid()
+
+
+    def __str__(self) -> str:
+        """ Make it easy to get the name of the list. """
+        return self.name
+
+    
+    def __len__(self) -> int:
+        """ return the number of *filled* elements """
+        return self.size - self.pids.count(0)
+            
+
+    @property
+    def size(self)  -> int:
+        """ return the [Read Only] number of elements the list may contain """
+        return self.size    
+
+
+    def __iadd__(self, pid:int):
+        """
+        Adds a PID to the list.
+        """
+        try:
+            self.pids[self.pids.index(0)] = pid
+        except ValueError as e:
+            raise Exception(f"The list of pids is full: {self.pids}")
+            
+
+    def __isub__(self, pid:int):
+        """
+        removes PID from the list, if it is present.
+        """
+        try:
+            self.pids[self.pids.index[pid]] = 0
+        except ValueError as e:
+            raise Exception(f"{pid} not found in {self.pids}")
+
+    
+
 ###
 # Just for curiosity, I wonder how long these things take.
 ###
@@ -47,50 +113,21 @@ start_time = time.time()
 def time_print(s:str) -> None:
     print("{} : {}".format(round(time.time()-start_time, 3), s))
 
-###########################################################################
-# Global variables that make things easier for programming the reporting
-# part of the tool.
-# 
-# current_key -- current key being examined at the root of the tree.
-# deadends -- the number of branches that have no anagrams.
-# exhausted_keys -- set containing the keys that have been checked.
-# longest_branch_explored -- "max depth" of the tree.
-# num_exhausted -- the size of exhausted_keys.
-# order -- set to 0, 1, or 2 for random, shortest first, longest first.
-# remainders -- 
-# tries -- how many tries.
-# vvv -- global boolean for verbosity.
-############################################################################
-current_key = ""
-deadends = 0
-exhausted_keys = set()
-longest_branch_explored = 0
-num_exhausted = 0
-order = -1
-remainders = set()
-tries = 0
+# So we don't waste our time examining things twice.
+failures = set()
 vvv = False
+tries = 0
+deadends = 0
+longest_branch_explored = 0
+smm = None
+pidlist = None
 
-############################################################################
-# Decoration for our live updates during execution.
-############################################################################
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
-   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
----+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
-formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9} {:>6} {}"
-
-@trap
-def cpucounter() -> int:
-    # There is no standard way to do this, particularly with virtualization.
-    names = {
-        'macOS': lambda : os.cpu_count(),
-        'Linux': lambda : len(os.sched_getaffinity(0)),
-        'Windows' : lambda : os.cpu_count()
-        }
-    return names[platform.platform().split('-')[0]]()
-
+ D | branch |  dead  | fail |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ | 
+   | evals  |  ends  | keys |  secs  |  secs  | faults |  sig  |  sig |       |
+---+--------+--------+------+--------+--------+--------+-------+------+-------|"""
+formatter=" {:>2} {: >8} {: >8} {: >6} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6}"
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -98,6 +135,7 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     Print the command line arguments as they would have been if the user
     had specified every possible one (including optionals and defaults).
     """
+
     if not return_it: print("")
     opt_string = ""
     for _ in sorted(vars(args).items()):
@@ -131,21 +169,17 @@ def find_words(phrase:str,
         keys, or None, never an empty SloppyTree.
     """
 
-    global current_key
-    global deadends
-    global exhausted_keys
-    global longest_branch_explored
-    global num_exhausted
-    global order
-    global remainders
-    global tries
+    global failures
+    global smm 
     global vvv
+    global tries
+    global deadends
+    global longest_branch_explored
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
     if len(phrase) < min_len * 2: 
         deadends += 1
-        vvv and sys.stderr.write(f"{phrase.as_str} too short.")
         return None
 
     longest_branch_explored = max(depth+1, longest_branch_explored)
@@ -153,61 +187,34 @@ def find_words(phrase:str,
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
+    keys_by_size = [ _ for _ in sorted(r_dict.keys(), key=len, reverse=True) if _ not in failures ]
 
-    # Create an iterator for the keys based on the preferred order.
-    if order:
-        keys_by_size = ( _ for _ in sorted(r_dict.keys(), key=len, reverse=(order==2)) )
-    else:
-        keys_by_size = ( _ for _ in random.sample(r_dict.keys(), len(r_dict)) )
-
-
-    ##################################################################33
-    # Let's iterate
-    ##################################################################33
     for i, key in enumerate(keys_by_size):
+        if key in failures: continue
         tries += 1
-        if depth==1: current_key = key
-        if not vvv and not tries%100: stats(depth) 
-        # "key" maps to at least one word, and "remainder" is the
-        # part about which we are uncertain.
+        if not tries%100: stats(depth) 
         remainder = phrase - key
-        vvv > 2 and sys.stderr.write(f"{key=} remainder={remainder.as_str}\n")
-
-        if len(remainder.as_str) < min_len:
-            vvv > 2 and sys.stderr.write(f"len({remainder.as_str}) < {min_len} \n")
-            continue
         
-        if str(remainder) in exhausted_keys: 
-            vvv > 2 and sys.stderr.write(f"{remainder.as_str} is exhausted.\n")
-            continue
-
-        # Is there at least one word that can be made from the
-        # complete remainder string?
+        # Is there at least one word that can be made from remainder?
         if str(remainder) in r_dict:
-            
-            vvv > 2 and sys.stderr.write(f"{remainder.as_str} in r_dict\n")
-            # Is the key that we subtracted as long as the remainder?
-            matches[key] = None if remainder.as_str in matches else remainder.as_str
-            vvv > 2 and not matches[key] and sys.stderr.write(f"... but remainder already in matches\n")
-        else:
-            if len(remainder) < min_len * 2:
-                vvv > 2 and sys.stderr.write(f"{remainder.as_str} too short to recurse.\n")
-            else:
-                vvv > 2 and sys.stderr.write(f"{remainder.as_str} recursing to level {depth+1}\n")
-                matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
-        if not matches[key]: 
+            # Is the key that we subtracted as long as the remainder?
+            if len(key) >= len(remainder):
+                # Temporarily add it, and see if it holds.
+                matches[key] = remainder.as_str
+
+            if remainder.as_str in matches: 
+                matches[key] = None
+        else:
+            matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
+
+        if matches[key] is None: 
             deadends += 1
             del matches[key]
 
-        # At this point, we have thoroghly examined remainder, and there is no
-        # reason to look at it again.
-        remainders.add(str(remainder))
-        vvv > 2 and sys.stderr.write(f"{remainder.as_str} is a new dead end.\n")
-        exhausted_keys.add(key)
-        num_exhausted += 1
-
-    return matches if len(matches) else None
+    if len(matches): return matches
+    failures.add(str(phrase))
+    return None
 
 
 @trap
@@ -280,21 +287,19 @@ def stats(depth:int) -> None:
     global tries
     global formatter
     global deadends
-    global current_key
-    global num_exausted
 
     info = resource.getrusage(resource.RUSAGE_SELF)
     print(formatter.format(
         depth+1,
         tries,
         deadends,
+        len(failures),  
         info[0],    # user mode time in seconds.
         info[1],    # system mode time in seconds.
         info[6],    # page faults not requiring I/O
         info[7],    # page faults that do require I/O
         info[14],   # giving up time
-        info[15],   # USEDQ, pre-emptive reschedule.
-        len(remainders), num_exhausted, current_key
+        info[15]    # USEDQ, pre-emptive reschedule.
         ),  end="\r", file=sys.stderr)
     
 
@@ -307,6 +312,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     returns -- an int from os.EX_*
     """
+    global smm
     global vvv
     global tries
     global topline
@@ -316,59 +322,39 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     vvv = myargs.verbose
 
     # If we have been given a limit on CPU, set it.
-    if myargs.cpu_time > 0: 
-        print(f"This execution is being limited to {myargs.cpu_time} CPU seconds.")
-        resource.setrlimit(resource.RLIMIT_CPU, (int(myargs.cpu_time), int(myargs.cpu_time)))
+    if myargs.cpu > 0: 
+        print(f"This execution is being limited to {myargs.cpu} CPU seconds.")
+        resource.setrlimit(resource.RLIMIT_CPU, (myargs.cpu, myargs.cpu))
 
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
     # of what it was.
     os.nice(7)
 
-    original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
+    original_words = myargs.phrase.lower().split()
     original_phrase = "".join(original_words)
     original_phrase_XF = CountedWord(original_phrase)
 
     min_len  = myargs.min_len
 
     # We cannot work without a dictionary, so let's get it first.
-    print(myargs.phrase)
+    print("Loading dictionaries.")
     words, XF_words = dictloader(myargs.dictionary)
-    print(f"{len(words)=} {len(XF_words)}")
+    print("Dictionaries loaded.") 
 
-    ###
-    # We may not want to use any of the words that were in
+    # We probably do not want to use any of the words that were in
     # the original phrase.
-    ###
-    exclusions = []
     if myargs.no_dups:
         for w in original_words:
             k = words.get(w)     # Get the corresponding XF_word
-            if k is not None: exclusions.append(k)
+            if k is None: continue
 
-    ###
-    # Check for a file of exclusions.
-    ###
-    if myargs.none_of:
-        try:
-            with open(myargs.none_of) as words:
-                exclusions.extend(words.read().lower().split())
-        except FileNotFoundError as e:
-            print(f"Unable to open {myargs.none_of}")
-
-    ###
-    # Remove all of the words we have collected.
-    ###
-    for w in exclusions: 
-        k = words.get(w)
-        if k is None: continue
-
-        t = XF_words[k]
-        t = tuple(_ for _ in t if _ != w)
-        if len(t):
-            XF_words[k] = t
-        else:
-            XF_words.pop(k)
+            t = XF_words[k]  # Get the tuple.
+            t = tuple(_ for _ in t if _ != w) # Build a new tuple.
+            if len(t):
+                XF_words[k] = t
+            else:
+                XF_words.pop(k)
 
     ###
     # We will make an initial pruning of the dictionaries, and then
@@ -379,54 +365,36 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         file=sys.stderr)
 
     print(f"{top_line}", file=sys.stderr)
-    anagrams = find_words(original_phrase, words, XF_words, myargs.min_len)
+    with SharedMemoryManager() as smm:
+        anagrams = find_words(original_phrase, words, XF_words, myargs.min_len)
     anagrams = replace_XF_keys(anagrams, XF_words)
-    self_anagrams = XF_words.get(CountedWord(original_phrase).as_str, None)
-    if self_anagrams is not None and len(self_anagrams) > 1:
-        self_anagrams = tuple([_ for _ in self_anagrams if not _ == original_phrase])
-        anagrams[original_phrase] = self_anagrams
     stats(0)
     print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
         file=sys.stderr)
     print(f"{anagrams}")
-    print(f"{len(anagrams)} anagrams for {myargs.phrase} were found.")
 
     return sys.exit(os.EX_OK)
 
 
 if __name__ == "__main__":
 
-    
-
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
-    parser.add_argument('-t', '--cpu-time', type=float, default=0,
+    parser.add_argument('-v', '--verbose', action='store_true',
+        help="Be chatty about what is taking place.")
+    parser.add_argument('--cpu', type=float, default=0,
         help="Set a maximum number of CPU seconds for execution.")
-    parser.add_argument('-x', '--cores', type=int, default=1, 
-        choices=range(1, cpucounter()),
-        help="Number of cores on which to execute.")
-    parser.add_argument('-d', '--dictionary', type=str, required=True,
-        help="Name of the dictionary of words, or a pickle of the dictionary.")
-    parser.add_argument('-m', '--min-len', type=int, default=2,
+    parser.add_argument('--min-len', type=int, default=2,
         help="Minimum length of any word in the anagram")
-    parser.add_argument('--nice', type=int, choices=range(0, 20), default=0,
-        help="Niceness may affect execution time.")
     parser.add_argument('--no-dups', action='store_true',
         help="Disallow words that were in the original phrase.")
-    parser.add_argument('--none-of', type=str, default=None,
-        help="Exclude all words in the given filename.")
-    parser.add_argument('--order', type=int, choices=(0, 1, 2), default=1,
-        help="Key ordering: 0: random, 1:shortest first, 2:longest first")
-    parser.add_argument('-v', '--verbose', type=int, default=0, choices=(0, 1, 2, 3),
-        help="Be chatty about what is taking place -- on a scale of 0 to 3")
-
-    parser.add_argument('phrase', type=str,
+    parser.add_argument('phrase', type=str, 
         help="The phrase. If it contains spaces, it must be in quotes.")
+    parser.add_argument('--dictionary', type=str, required=True,
+        help="Name of the dictionary of words, or a pickle of the dictionary.")
 
     myargs = parser.parse_args()
-    if myargs.nice: os.nice(myargs.nice)
     dump_cmdline(myargs)
-    order = myargs.order
 
     sys.exit(anagrammar_main(myargs))
