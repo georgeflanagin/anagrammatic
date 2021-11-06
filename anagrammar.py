@@ -76,10 +76,10 @@ vvv = False
 ############################################################################
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
+ D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ | Key Num | 
    | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
 ---+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
-formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9} {:>6} {}"
+formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9}"
 
 @trap
 def cpucounter() -> int:
@@ -125,6 +125,7 @@ def find_words(phrase:str,
     reverse_dict -- keys are collections of sorted letters, and the values
         are the dictionary words that can be spelt using them.
     min_len -- the boundary.
+    depth -- keep track of the recursion level
 
     returns -- a SloppyTree whose keys are the qualifying keys from
         the reverse_dict. The values are either a SloppyTree containing
@@ -155,10 +156,11 @@ def find_words(phrase:str,
     if isinstance(phrase, str): phrase = CountedWord(phrase)
 
     # Create an iterator for the keys based on the preferred order.
-    if order:
-        keys_by_size = ( _ for _ in sorted(r_dict.keys(), key=len, reverse=(order==2)) )
-    else:
-        keys_by_size = ( _ for _ in random.sample(r_dict.keys(), len(r_dict)) )
+    keys_by_size = (
+        (_ for _ in sorted(r_dict.keys(), key=len, reverse=(order==2))) 
+        if order else
+        (_ for _ in random.sample(r_dict.keys(), len(r_dict)))
+        )
 
 
     ##################################################################33
@@ -167,7 +169,9 @@ def find_words(phrase:str,
     for i, key in enumerate(keys_by_size):
         tries += 1
         if depth==1: current_key = key
+        if key in exhausted_keys: continue
         if not vvv and not tries%100: stats(depth) 
+
         # "key" maps to at least one word, and "remainder" is the
         # part about which we are uncertain.
         remainder = phrase - key
@@ -184,16 +188,18 @@ def find_words(phrase:str,
         # Is there at least one word that can be made from the
         # complete remainder string?
         if str(remainder) in r_dict:
-            
             vvv > 2 and sys.stderr.write(f"{remainder.as_str} in r_dict\n")
-            # Is the key that we subtracted as long as the remainder?
-            matches[key] = None if remainder.as_str in matches else remainder.as_str
-            vvv > 2 and not matches[key] and sys.stderr.write(f"... but remainder already in matches\n")
+            matches[key] = remainder
+            continue
+
         else:
-            if len(remainder) < min_len * 2:
-                vvv > 2 and sys.stderr.write(f"{remainder.as_str} too short to recurse.\n")
+            if len(remainder) < min_len*2:
+                vvv > 2 and sys.stderr.write(
+                    f"{remainder.as_str} too short to recurse.\n")
+                continue
             else:
-                vvv > 2 and sys.stderr.write(f"{remainder.as_str} recursing to level {depth+1}\n")
+                vvv > 2 and sys.stderr.write(
+                    f"{remainder.as_str} recursing to level {depth+1}\n")
                 matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
         if not matches[key]: 
@@ -202,12 +208,12 @@ def find_words(phrase:str,
 
         # At this point, we have thoroghly examined remainder, and there is no
         # reason to look at it again.
-        remainders.add(str(remainder))
         vvv > 2 and sys.stderr.write(f"{remainder.as_str} is a new dead end.\n")
-        exhausted_keys.add(key)
-        num_exhausted += 1
+        if depth==1:
+            exhausted_keys.add(key)
+            num_exhausted += 1
 
-    return matches if len(matches) else None
+    return matches if len(dict(matches)) else None
 
 
 @trap
@@ -258,10 +264,10 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
 
     # Find out if we are at a leaf.
     if not isinstance(t, SloppyTree): 
-        if isinstance(replacements[t], tuple) and len(replacements[t]) == 1:
-            return replacements[t][0]
-
-        return replacements[t]    
+        if isinstance(replacements[str(t)], tuple):
+            return ( replacements[str(t)][0] 
+                if len(replacements) == 1 else
+                replacements[str(t)] )
 
     for k in t:
         result = replace_XF_keys(t[k], replacements)
@@ -281,7 +287,7 @@ def stats(depth:int) -> None:
     global formatter
     global deadends
     global current_key
-    global num_exausted
+    global num_exhausted
 
     info = resource.getrusage(resource.RUSAGE_SELF)
     print(formatter.format(
@@ -294,7 +300,7 @@ def stats(depth:int) -> None:
         info[7],    # page faults that do require I/O
         info[14],   # giving up time
         info[15],   # USEDQ, pre-emptive reschedule.
-        len(remainders), num_exhausted, current_key
+        num_exhausted
         ),  end="\r", file=sys.stderr)
     
 
