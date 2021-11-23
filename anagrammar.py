@@ -54,6 +54,8 @@ order = -1
 vvv = False
 tries = 0
 deadends = 0
+key_count = 0
+gkey = ""
 longest_branch_explored = 0
 
 """        0123456789 123456789 123456789 123456789 123456789 """
@@ -61,7 +63,7 @@ top_line ="""
  D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
    | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
 ---+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
-formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9}"
+formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9} keys => {:>6}:{}"
 
 ###
 # There is no standard way to do this, particularly with virtualization.
@@ -121,6 +123,9 @@ def find_words(phrase:str,
     global remainders
     global tries
     global vvv
+    global key_count
+    global gkey
+    global exhausted_keys
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
@@ -140,8 +145,12 @@ def find_words(phrase:str,
         keys_by_size = ( _ for _ in random.sample(r_dict.keys(), len(r_dict)) )
 
     for i, key in enumerate(keys_by_size):
+        if depth==0: 
+            gkey = key
+            key_count += 1
         tries += 1
-        if not vvv and not tries%100: stats(depth) 
+        if key in exhausted_keys: continue
+        if not vvv and not tries%100: stats(depth, key_count, gkey) 
         # "key" maps to at least one word, and "remainder" is the
         # part about which we are uncertain.
         remainder = phrase - key
@@ -178,6 +187,7 @@ def find_words(phrase:str,
         # reason to look at it again.
         remainders.add(str(remainder))
         vvv > 2 and sys.stderr.write(f"{remainder.as_str} is a new dead end.\n")
+        not depth and exhausted_keys.add(key)
 
     return matches if len(matches) else None
 
@@ -245,7 +255,7 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
 
 
 @trap
-def stats(depth:int) -> None:
+def stats(depth:int, k_count:int, gkey:str) -> None:
     """
     Print a line of statistics.
     """
@@ -264,7 +274,9 @@ def stats(depth:int) -> None:
         info[7],    # page faults that do require I/O
         info[14],   # giving up time
         info[15],   # USEDQ, pre-emptive reschedule.
-        len(remainders)
+        len(remainders),
+        k_count,
+        gkey
         ),  end="\r", file=sys.stderr)
     
 
@@ -355,7 +367,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     if self_anagrams is not None and len(self_anagrams) > 1:
         self_anagrams = tuple([_ for _ in self_anagrams if not _ == original_phrase])
         anagrams[original_phrase] = self_anagrams
-    stats(0)
+    stats(0, len(words), "")
     print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
         file=sys.stderr)
     print(f"{anagrams}")
