@@ -115,7 +115,7 @@ class SloppyTree(dict):
 
         for k, v in self.items():
             yield k, 1 if with_indicator else k
-            if isinstance(v, SloppyTree):
+            if isinstance(v, dict):
                 yield from v.traverse(with_indicator)
             else:
                 yield v, 0 if with_indicator else v

@@ -47,55 +47,35 @@ start_time = time.time()
 def time_print(s:str) -> None:
     print("{} : {}".format(round(time.time()-start_time, 3), s))
 
-###########################################################################
-# Global variables that make things easier for programming the reporting
-# part of the tool.
-# 
-# current_key -- current key being examined at the root of the tree.
-# deadends -- the number of branches that have no anagrams.
-# exhausted_keys -- set containing the keys that have been checked.
-# longest_branch_explored -- "max depth" of the tree.
-# num_exhausted -- the size of exhausted_keys.
-# order -- set to 0, 1, or 2 for random, shortest first, longest first.
-# remainders -- 
-# tries -- how many tries.
-# vvv -- global boolean for verbosity.
-############################################################################
-current_key = ""
-deadends = 0
-exhausted_keys = set()
-longest_branch_explored = 0
-num_exhausted = 0
-order = -1
+# So we don't waste our time examining things twice.
 remainders = set()
-tries = 0
+exhausted_keys = set()
+order = -1
 vvv = False
+tries = 0
+deadends = 0
+key_count = 0
+gkey = ""
+longest_branch_explored = 0
 
-############################################################################
-# Decoration for our live updates during execution.
-############################################################################
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
- D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ | Key Num | 
+ D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
    | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
 ---+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
-formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9}"
+formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9} keys => {:>6}:{}"
 
+###
+# There is no standard way to do this, particularly with virtualization.
+###
 @trap
 def cpucounter() -> int:
-    # There is no standard way to do this, particularly with virtualization.
     names = {
         'macOS': lambda : os.cpu_count(),
         'Linux': lambda : len(os.sched_getaffinity(0)),
         'Windows' : lambda : os.cpu_count()
         }
     return names[platform.platform().split('-')[0]]()
-
-
-def debug(s:str) -> bool:
-    global vvv
-    if vvv > 3: sys.stderr.write(f"{s}\n")
-    return vvv > 2
 
 
 @trap
@@ -131,27 +111,27 @@ def find_words(phrase:str,
     reverse_dict -- keys are collections of sorted letters, and the values
         are the dictionary words that can be spelt using them.
     min_len -- the boundary.
-    depth -- keep track of the recursion level
 
     returns -- a SloppyTree whose keys are the qualifying keys from
         the reverse_dict. The values are either a SloppyTree containing
         keys, or None, never an empty SloppyTree.
     """
 
-    global current_key
     global deadends
-    global exhausted_keys
     global longest_branch_explored
-    global num_exhausted
     global order
     global remainders
     global tries
+    global vvv
+    global key_count
+    global gkey
+    global exhausted_keys
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
     if len(phrase) < min_len * 2: 
         deadends += 1
-        debug(f"{phrase.as_str} too short.")
+        vvv and sys.stderr.write(f"{phrase.as_str} too short.")
         return None
 
     longest_branch_explored = max(depth+1, longest_branch_explored)
@@ -159,52 +139,45 @@ def find_words(phrase:str,
 
     f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
     if isinstance(phrase, str): phrase = CountedWord(phrase)
+    if order:
+        keys_by_size = ( _ for _ in sorted(r_dict.keys(), key=len, reverse=(order==2)) )
+    else:
+        keys_by_size = ( _ for _ in random.sample(r_dict.keys(), len(r_dict)) )
 
-    # Create an iterator for the keys based on the preferred order.
-    keys_by_size = (
-        (_ for _ in sorted(r_dict.keys(), key=len, reverse=(order==2))) 
-        if order else
-        (_ for _ in random.sample(r_dict.keys(), len(r_dict)))
-        )
-
-
-    ##################################################################33
-    # Let's iterate
-    ##################################################################33
     for i, key in enumerate(keys_by_size):
+        if depth==0: 
+            gkey = key
+            key_count += 1
         tries += 1
-        if depth==1: current_key = key
         if key in exhausted_keys: continue
-        if not vvv and not tries%100: stats(depth) 
-
+        if not vvv and not tries%100: stats(depth, key_count, gkey) 
         # "key" maps to at least one word, and "remainder" is the
         # part about which we are uncertain.
         remainder = phrase - key
-        debug(f"{key=} remainder={remainder.as_str}")
+        vvv > 2 and sys.stderr.write(f"{key=} remainder={remainder.as_str}\n")
 
         if len(remainder.as_str) < min_len:
-            debug(f"len({remainder.as_str}) < {min_len}")
+            vvv > 2 and sys.stderr.write(f"len({remainder.as_str}) < {min_len} \n")
             continue
         
-        if str(remainder) in exhausted_keys: 
-            debug(f"{remainder.as_str} is exhausted.")
+        if str(remainder) in remainders: 
+            vvv > 2 and sys.stderr.write(f"{remainder.as_str} is known dead end.\n")
             continue
 
         # Is there at least one word that can be made from the
         # complete remainder string?
         if str(remainder) in r_dict:
-            debug(f"{remainder.as_str} in r_dict")
-            matches[key] = remainder
-            continue
-
+            
+            vvv > 2 and sys.stderr.write(f"{remainder.as_str} in r_dict\n")
+            # Is the key that we subtracted as long as the remainder?
+            matches[key] = None if remainder.as_str in matches else remainder.as_str
+            vvv > 2 and not matches[key] and sys.stderr.write(f"... but remainder already in matches\n")
         else:
-            if len(remainder) < min_len*2:
-                debug(f"{remainder.as_str} too short to recurse.")
-                continue
+            if len(remainder) < min_len * 2:
+                vvv > 2 and sys.stderr.write(f"{remainder.as_str} too short to recurse.\n")
             else:
-                debug(f"{remainder.as_str} recursing to level {depth+1}")
-                matches[key] = find_words(
-                    remainder, f_dict, r_dict, min_len, depth=depth+1)
+                vvv > 2 and sys.stderr.write(f"{remainder.as_str} recursing to level {depth+1}\n")
+                matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
 
         if not matches[key]: 
             deadends += 1
@@ -212,12 +185,11 @@ def find_words(phrase:str,
 
         # At this point, we have thoroghly examined remainder, and there is no
         # reason to look at it again.
-        debug(f"{remainder.as_str} is a new dead end.")
-        if depth==1:
-            exhausted_keys.add(key)
-            num_exhausted += 1
+        remainders.add(str(remainder))
+        vvv > 2 and sys.stderr.write(f"{remainder.as_str} is a new dead end.\n")
+        not depth and exhausted_keys.add(key)
 
-    return matches if len(dict(matches)) else None
+    return matches if len(matches) else None
 
 
 @trap
@@ -268,10 +240,10 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
 
     # Find out if we are at a leaf.
     if not isinstance(t, SloppyTree): 
-        if isinstance(replacements[str(t)], tuple):
-            return ( replacements[str(t)][0] 
-                if len(replacements) == 1 else
-                replacements[str(t)] )
+        if isinstance(replacements[t], tuple) and len(replacements[t]) == 1:
+            return replacements[t][0]
+
+        return replacements[t]    
 
     for k in t:
         result = replace_XF_keys(t[k], replacements)
@@ -283,15 +255,13 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
 
 
 @trap
-def stats(depth:int) -> None:
+def stats(depth:int, k_count:int, gkey:str) -> None:
     """
     Print a line of statistics.
     """
     global tries
     global formatter
     global deadends
-    global current_key
-    global num_exhausted
 
     info = resource.getrusage(resource.RUSAGE_SELF)
     print(formatter.format(
@@ -304,7 +274,9 @@ def stats(depth:int) -> None:
         info[7],    # page faults that do require I/O
         info[14],   # giving up time
         info[15],   # USEDQ, pre-emptive reschedule.
-        num_exhausted
+        len(remainders),
+        k_count,
+        gkey
         ),  end="\r", file=sys.stderr)
     
 
@@ -335,8 +307,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # of what it was.
     os.nice(7)
 
-    original_words = [ _ for _ in myargs.phrase.lower() 
-        if _ in string.ascii_lowercase ]
+    original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
     original_phrase = "".join(original_words)
     original_phrase_XF = CountedWord(original_phrase)
 
@@ -396,7 +367,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     if self_anagrams is not None and len(self_anagrams) > 1:
         self_anagrams = tuple([_ for _ in self_anagrams if not _ == original_phrase])
         anagrams[original_phrase] = self_anagrams
-    stats(0)
+    stats(0, len(words), "")
     print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
         file=sys.stderr)
     print(f"{anagrams}")
@@ -406,6 +377,9 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
 
 if __name__ == "__main__":
+
+    
+
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
@@ -424,7 +398,7 @@ if __name__ == "__main__":
         help="Disallow words that were in the original phrase.")
     parser.add_argument('--none-of', type=str, default=None,
         help="Exclude all words in the given filename.")
-    parser.add_argument('-o', '--order', type=int, choices=(0, 1, 2), default=1,
+    parser.add_argument('--order', type=int, choices=(0, 1, 2), default=1,
         help="Key ordering: 0: random, 1:shortest first, 2:longest first")
     parser.add_argument('-v', '--verbose', type=int, default=0, choices=(0, 1, 2, 3),
         help="Be chatty about what is taking place -- on a scale of 0 to 3")

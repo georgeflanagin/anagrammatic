@@ -5,8 +5,8 @@
 \providecommand{\anagrammar}{A\textsc{nagrammar}\xspace}
 
 
-\SetWatermarkText{Review Copy}
-\SetWatermarkFontSize{5cm}
+\SetWatermarkText{\textcopyright George Flanagin}
+\SetWatermarkFontSize{4cm}
 \SetWatermarkAngle{58}
 \SetWatermarkColor[gray]{0.97}
 
@@ -221,7 +221,7 @@ such that \Dpp $\subset$ \Dp $\subset$ \D, in other words, a filter.\\
 
 \bottomrule
 \end{tabular}
-\caption{Symbols used to discuss anagrams}
+\caption{Notation used to discuss anagrams}
 \label{fig:anagramsymbols}
 \end{figure}
 
@@ -237,23 +237,25 @@ their parts, and their construction.
 
 In Figure~\ref{fig:anagramsymbols} we can see the basic notation
 that is invented for the purpose of this discussion. The other
-symbols used, such as assignment, absolute value, and non-anagram
-set operations, are expressed in conventional notation, and will
-mean what you expect them to.
+symbols used, such as assignment, absolute value, (lexically) less
+than and non-anagram set operations, are expressed in conventional
+notation, and will mean what you expect them to.
 
 The notation suggests that our Python representation will need all
 of these operators/operations:
 
 \begin{enumerate}
 \item Sorting the letters of a string to make an new string of the 
-same length.
+same length, which is to say transforming \w into \aw.
 
 \item The always useful ``partial ordering'' operator, $\leq$, so that
 we can determine if words can be used to make an anagram of the target
-phrase.
+phrase. From the standpoint of notation, this seems more strict that
+the subset operator, $\subseteq$.
 
-\item A method to combine strings beyond concatenation, and a method
-to remove letters from a string.
+\item A method to combine two sorted strings into a sorted string
+result, $w_1 \oplus w_2$, and a method to remove letters from a string,
+$w_1 \ominus w_2$. 
 
 \item A method to filter the useful words in a dictionary to make
 a new, subset dictionary.
@@ -262,11 +264,11 @@ a new, subset dictionary.
 have been found, and avoid searching the same path twice.
 \end{enumerate}
 
-In fact, these operations lead us directly to a discussion of the 
+These operations lead us directly to a discussion of the 
 algorithm to find all anagrams. 
 
 \newpage
-\section{Algorithm}
+\section{The Algorithm}
 
 \quickquote{Homer Jay, how do you keep your hair so rich and full?\\
 Lather, rinse, and repeat. Always repeat.}{Homer Simpson\\D'oh-in'
@@ -297,13 +299,19 @@ This is often a small collection of words, and we know that
 \forall w: |w| \leq |\mathfrak{S}|
 \end{equation}
 
+As the recursive process proceeds, the string becomes shorter
+and the pruned dictionary rapidly reduces in size.
 
 \subsection{Trying the words}
 
-It makes sense to start with the longest words in \Dp, a fact that
+It makes sense to start with the shortest words in \Dp, a fact that
 will guide us when we start the programming in the next section.
-Each word in the dictionary will be subtracted from the target
-phrase, and will leave a complementary set of remainders.
+In fact, we must search the keys of the same length in some fixed
+order, usually referred to as ``sorted order.'' A conventional
+lexical sort is OK.  Each word in the dictionary will be subtracted
+from the target phrase, and will leave a remainder that either
+completes the anagram if it is present in the dictionary, or can
+be recursively decomposed to find anagrams of the remainder.
 
 \begin{equation}
 \label{eq:remainders}
@@ -317,25 +325,24 @@ At this point, we should take note of the one-to-many relationship
 between \aw and the dictionary words \w. Words that are anagrams
 of each other share the same sorted representation of their letters,
 so in a key-value look up table, if the keys are of the form \aw,
-then they must support a list (tuple) of one or more \w-s as the
+then they must support a n-tuple of one or more \w-s as the
 values.
 
-While programming this data structure takes us into the shallow end
-of the pool of rolling our own data structures later on, it does
-mean that we do not need to try any of the words in the tuple to
-make an anagram, we need only concern ourselves with the sorted
-key. Consider this specific case: $acer \longrightarrow \{acre,
-race, care\}$
+While programming to use its non-hashable keys requires us to roll
+our own data structure, it has the advantage that we do not need
+to try the words in the tuple to make an anagram, we need only
+concern ourselves with the sorted key.
 
-The sorted representation, $acer$, is meaningless. But we can freely
-substitute any of the three English words in an anagram that contains
-one of them. Whether the collection of real words associated with
-a key has one or more than one element, we only need to bother with the key.
-Thus, Equation~\ref{eq:remainders} becomes the more manageable
-expression seen here:
+Consider this specific case: $acer \longrightarrow \{acre, race,
+care\}$ The sorted representation, $acer$, is meaningless. But we
+can freely substitute any of the three English words in an anagram
+that contains one of them. Whether the collection of real words
+associated with a key has one element or many elements, we only
+need to bother with the key.  Thus, Equation~\ref{eq:remainders}
+becomes the more manageable expression seen here:
 
 \begin{equation}
-\mathfrak{R} = \{\forall \overrightarrow{w} : \mathfrak{S} \ominus \overrightarrow{w} \}
+\mathfrak{R} = \{\forall \overrightarrow{w} : \mathfrak{S} \ominus \overrightarrow{w}\}
 \end{equation}
 
 We cannot neglect the fact that $\forall w: w \odot w$, or in plain English,
@@ -346,6 +353,28 @@ must check for the ``two word'' solution.\footnote{In fact, if the
 original phrase is shorter than the longest words in the dictionary,
 we must include the ``one word'' solution. For example, if the target
 phrase is \emph{gimp count}, there is a one word solution to be found: computing.}
+
+\subsection{Completeness}
+
+How can we be sure that we have found all of the anagrams of $\mathfrak{S}$?
+Let us consider the collection of keys we will use. It has these properties:
+
+\begin{enumerate}
+\item The collection consists of sorted strings of characters such that 
+$|\overrightarrow{w_i}| \leq |\overrightarrow{w_{i+1}}|$
+
+\item It is even true that 
+$\overrightarrow{w_i} < \overrightarrow{w_{i+1}}$ because there are no
+duplicate sorted strings.
+
+\end{enumerate}
+
+Let us consider that each collection has a least element,
+$\overrightarrow{w_0}$.  Our first operation is then $r_0 = \mathfrak{S}
+- \overrightarrow{w_0}$.
+
+What do we know about $r_0$? We know that $r > \overrightarrow{w_0}$,
+and that $\forall \overrightarrow{w} : \overrightarrow{w} \in R, $.
 
 \subsection{Recursion and bookkeeping}
 
@@ -363,6 +392,7 @@ completion (\ie dead ends) we can saw these to the ground, and
 experience has shown that dead ends will constitute the majority
 of the \aw terms we try.
 
+\begin{comment}
 \newpage
 \section{Programming}
 
@@ -1061,6 +1091,7 @@ pickle.
         \textbf{ORCID}&0000-0002-2084-5831\\
     \end{tabular}
 \end{figure}
+\end{comment}
 
 \end{document}
 
