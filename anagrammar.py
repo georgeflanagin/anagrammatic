@@ -57,6 +57,7 @@ deadends = 0
 key_count = 0
 gkey = ""
 longest_branch_explored = 0
+parkinglot = {}
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
@@ -101,7 +102,7 @@ def find_words(phrase:str,
     depth:int=0) -> SloppyTree:
     """
     Our formula. This is a recursive function to discover the 
-    anagrams. It starts by considering the longest possible word
+    anagrams. It starts by considering the shortest possible word
     that could be a part of an anagram for the target phrase, and
     progressively considers shorter keys. 
 
@@ -115,6 +116,28 @@ def find_words(phrase:str,
     returns -- a SloppyTree whose keys are the qualifying keys from
         the reverse_dict. The values are either a SloppyTree containing
         keys, or None, never an empty SloppyTree.
+
+    More complete explanation:
+
+    Keys that have been considered are sent to the parkinglot, where
+        the parkinglot consists of tuples of keys and the depth at
+        which they were considered.
+
+    Start with the shortest remaining key that could be in the (remaining)
+        phrase. Call the phrase P and the key K_1.
+
+    If K_1 has been considered at a level <= the current level, skip it,
+        and go to the next key.
+
+    Create a tuple consisting of K_1 and this level, so in the
+        beginning it is (somelongkey, 0), later it is (K_1, L)
+
+    Determine if the remaining letters form a key; IOW, does
+        K_2 = P - K_1 exist in the dictionary of keys? If it does,
+        then K_2 completes some anagram. Eureka.
+
+    If it does not, and K_2 is long enough to be split into subkeys,
+        recursively call this function.
     """
 
     global deadends
@@ -126,6 +149,7 @@ def find_words(phrase:str,
     global key_count
     global gkey
     global exhausted_keys
+    global parkinglot
 
     # For us to consider the parts, the phrase must be long enough to
     # be broken into parts.
@@ -145,11 +169,16 @@ def find_words(phrase:str,
         keys_by_size = ( _ for _ in random.sample(r_dict.keys(), len(r_dict)) )
 
     for i, key in enumerate(keys_by_size):
+        try:
+            seen_at_level = parkinglot[key]
+            if seen_at_level <= depth: continue
+        except KeyError as e:
+            parkinglot[key] = depth
+
         if depth==0: 
             gkey = key
             key_count += 1
         tries += 1
-        if key in exhausted_keys: continue
         if not vvv and not tries%100: stats(depth, key_count, gkey) 
         # "key" maps to at least one word, and "remainder" is the
         # part about which we are uncertain.
