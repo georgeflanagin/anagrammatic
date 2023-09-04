@@ -13,6 +13,7 @@ import gc
 import math
 import platform
 import pickle
+import pprint
 import time
 
 from   gkfdecorators import show_exceptions_and_frames as trap
@@ -35,6 +36,20 @@ elif this_os == 'Darwin':
     default_word_list = '/usr/share/dict/words'
 else:
     default_word_list = './words'
+
+###
+# The alphabet order is not relevant to the algorithm. This order
+# was chosen to reduce the magnitude of the numbers slightly.
+###
+primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", (2, 3, 5, 7, 11, 
+    13, 17, 19, 23, 29, 
+    31, 37, 41, 43, 47, 
+    53, 59, 61, 67, 71, 
+    73, 79, 83, 89, 97,
+    101 )))
+
+def word_value(word:str) -> int:
+    return math.prod(primes[_] for _ in word)
 
 one_letter_words = frozenset({'a', 'i'})
 
@@ -255,42 +270,37 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
         for k in data if k.isalpha() }
     print(f"{len(filtered_data)} words remain after isalpha() filtering.")
 
-    # Count by length.
+    ###
+    # Our collection of words has integer keys that correspond to
+    # a composite number that represents the values of each letter
+    # multiplied together, and a tuple of words that have the same
+    # factorization. For example:
+    #
+    # care = 5 * 2 * 61 * 11 = 6710
+    #
+    # So, in the dictionary, we will have.
+    #
+    # { 6710 : ('care', 'race', 'acre') }
+    ###
     words = collections.defaultdict(list)
     for word in filtered_data:
-        words[len(word)].append(word)
+        words[word_value(word)].append(word)
 
-    for k in sorted(list(words.keys())):
-        print(f"{len(words[k])} words of length {k}" )
+    words = {k:tuple(v) for k, v in words.items()}
 
 
-    ###
-    # reverse this dictionary.
-    ###
-    reversed_dict = collections.defaultdict(list)
-    for _ in set(list(filtered_data.keys())):
-        reversed_dict[filtered_data[_]].append(_)
-    print(f"reversed dict has {len(reversed_dict)} keys.\n")
-    ###
-    # the dictionary cannot change once it is built, so convert the lists
-    # of strings that are the values to tuples of strings. Saves space,
-    # and increases usefulness because tuples are hashable and lists 
-    # are not.
-    ###
-    reversed_dict = { k : tuple(v) for k, v in reversed_dict.items() }
-
-    with open(f"{myargs.outfile}.reversed", 'wb') as out:
-        pickle.dump(reversed_dict, out)
-        sys.stderr.write("reversed dict pickled and written\n")
-
-    with open(f"{myargs.outfile}.forward", 'wb') as out:
-        pickle.dump(filtered_data, out)
+    with open(f"{myargs.outfile}.numbers", 'wb') as out:
+        pickle.dump(words, out)
         sys.stderr.write("forward dict pickled and written\n")
 
-    return len(reversed_dict)
+    with open(f"{myargs.outfile}.txt", 'w') as out:
+        out.write(pprint.pformat(words))
+
+
+    return len(words)
         
 
-def dictloader(filename:str) -> tuple:
+def dictloader(filename:str) -> dict:
     """
     read the pickled dictionaries from files whose name
     matches the argument, and with .forward and .reversed 
@@ -300,13 +310,10 @@ def dictloader(filename:str) -> tuple:
     """
     if filename.endswith('.'): filename = filename[:-1]
 
-    with open(f"{filename}.forward", 'rb') as f:
-        forward_dict = pickle.load(f)
+    with open(f"{filename}.numbers", 'rb') as f:
+        numeric_dict = pickle.load(f)
 
-    with open(f"{filename}.reversed", 'rb') as f:
-        reversed_dict = pickle.load(f)
-
-    return forward_dict, reversed_dict
+    return numeric_dict
 
 
 if __name__ == '__main__':

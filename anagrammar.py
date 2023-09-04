@@ -10,6 +10,7 @@ import os
 import sys
 
 import argparse
+import logging
 import math
 import multiprocessing
 import platform
@@ -22,11 +23,10 @@ import time
 # Parts of this project.
 ###
 
-from   gkfdecorators import show_exceptions_and_frames as trap
-import anagramwords
-from   anagramwords  import CountedWord
+from   urdecorators  import trap
 from   dictbuilder   import dictbuilder, dictloader
 from   sloppytree    import SloppyTree
+import urlogger
 
 ###
 # Credits
@@ -47,17 +47,25 @@ start_time = time.time()
 def time_print(s:str) -> None:
     print("{} : {}".format(round(time.time()-start_time, 3), s))
 
-# So we don't waste our time examining things twice.
+###
+# The alphabet order is not relevant to the algorithm. This order
+# was chosen to reduce the magnitude of the numbers slightly.
+###
+primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", (2, 3, 5, 7, 11, 
+    13, 17, 19, 23, 29, 
+    31, 37, 41, 43, 47, 
+    53, 59, 61, 67, 71, 
+    73, 79, 83, 89, 97,
+    101 )))
+
+def word_value(word:str) -> int:
+    return math.prod(primes[_] for _ in word)
+
 remainders = set()
-exhausted_keys = set()
-order = -1
-vvv = False
 tries = 0
 deadends = 0
-key_count = 0
 gkey = ""
 longest_branch_explored = 0
-parkinglot = {}
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
@@ -95,10 +103,8 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
 
 
 @trap
-def find_words(phrase:str, 
-    forward_dict:dict, 
-    reversed_dict:dict, 
-    min_len:int=0,
+def find_words(phrase_v:int, 
+    factors:tuple, 
     depth:int=0) -> SloppyTree:
     """
     Our formula. This is a recursive function to discover the 
@@ -106,155 +112,50 @@ def find_words(phrase:str,
     that could be a part of an anagram for the target phrase, and
     progressively considers shorter keys. 
 
-    phrase -- the string for which we are trying to find anagrams.
-    forward_dict -- keys are dictionary words, and values are the same
-        letters, sorted.
-    reverse_dict -- keys are collections of sorted letters, and the values
-        are the dictionary words that can be spelt using them.
-    min_len -- the boundary.
+    phrase_v -- the word_value of the string we are finding anagrams for.
+        If it is not a large composite number (i.e., strictly greater than 
+        any of the factors), then it cannot be part of an anagram, and 
+        this is a dead-end. 
 
-    returns -- a SloppyTree whose keys are the qualifying keys from
-        the reverse_dict. The values are either a SloppyTree containing
-        keys, or None, never an empty SloppyTree.
+    factors -- a tuple of integers that correspond to the potential
+        components of the anagram.
 
-    More complete explanation:
-
-    Keys that have been considered are sent to the parkinglot, where
-        the parkinglot consists of tuples of keys and the depth at
-        which they were considered.
-
-    Start with the shortest remaining key that could be in the (remaining)
-        phrase. Call the phrase P and the key K_1.
-
-    If K_1 has been considered at a level <= the current level, skip it,
-        and go to the next key.
-
-    Create a tuple consisting of K_1 and this level, so in the
-        beginning it is (somelongkey, 0), later it is (K_1, L)
-
-    Determine if the remaining letters form a key; IOW, does
-        K_2 = P - K_1 exist in the dictionary of keys? If it does,
-        then K_2 completes some anagram. Eureka.
-
-    If it does not, and K_2 is long enough to be split into subkeys,
-        recursively call this function.
+    returns -- a SloppyTree of ints representing the integers we
+        have evaluated. If the leaf is True, then the path from
+        the root to the leaf is an anagram. If the leaf is False,
+        then this is a dead-end, and the parent of the leaf
+        cannot be a part of an anagram.
     """
 
-    global deadends
     global longest_branch_explored
-    global order
-    global remainders
-    global tries
-    global vvv
-    global key_count
-    global gkey
-    global exhausted_keys
-    global parkinglot
-
-    # For us to consider the parts, the phrase must be long enough to
-    # be broken into parts.
-    if len(phrase) < min_len * 2: 
-        deadends += 1
-        vvv and sys.stderr.write(f"{phrase.as_str} too short.")
-        return None
 
     longest_branch_explored = max(depth+1, longest_branch_explored)
     matches = SloppyTree()
+    root = matches[phrase_v]
 
-    f_dict, r_dict = prune_dicts(phrase, forward_dict, reversed_dict, min_len)
-    if isinstance(phrase, str): phrase = CountedWord(phrase)
-    if order:
-        keys_by_size = ( _ for _ in sorted(r_dict.keys(), key=len, reverse=(order==2)) )
-    else:
-        keys_by_size = ( _ for _ in random.sample(r_dict.keys(), len(r_dict)) )
+    # Let's start with the largest factor.
+    factors = sorted(factors, reverse=True)
+    smallest_factor = factors[-1]
 
-    for i, key in enumerate(keys_by_size):
-        try:
-            seen_at_level = parkinglot[key]
-            if seen_at_level <= depth: continue
-        except KeyError as e:
-            parkinglot[key] = depth
-
-        if depth==0: 
-            gkey = key
-            key_count += 1
-        tries += 1
-        if not vvv and not tries%100: stats(depth, key_count, gkey) 
-        # "key" maps to at least one word, and "remainder" is the
-        # part about which we are uncertain.
-        remainder = phrase - key
-        vvv > 2 and sys.stderr.write(f"{key=} remainder={remainder.as_str}\n")
-
-        if len(remainder.as_str) < min_len:
-            vvv > 2 and sys.stderr.write(f"len({remainder.as_str}) < {min_len} \n")
-            continue
+    for factor in factors:
+        logger.debug(f"{depth} : {factor}")
+        residual = phrase_v // factor
+        if residual == 1: # This is a terminal.
+            root[residual] = True
+        elif residual < smallest_factor: # This is a dead-end.
+            root[residual] = False
+        else: # We don't yet know.
+            root[residual] = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
         
-        if str(remainder) in remainders: 
-            vvv > 2 and sys.stderr.write(f"{remainder.as_str} is known dead end.\n")
-            continue
-
-        # Is there at least one word that can be made from the
-        # complete remainder string?
-        if str(remainder) in r_dict:
-            
-            vvv > 2 and sys.stderr.write(f"{remainder.as_str} in r_dict\n")
-            # Is the key that we subtracted as long as the remainder?
-            matches[key] = None if remainder.as_str in matches else remainder.as_str
-            vvv > 2 and not matches[key] and sys.stderr.write(f"... but remainder already in matches\n")
-        else:
-            if len(remainder) < min_len * 2:
-                vvv > 2 and sys.stderr.write(f"{remainder.as_str} too short to recurse.\n")
-            else:
-                vvv > 2 and sys.stderr.write(f"{remainder.as_str} recursing to level {depth+1}\n")
-                matches[key] = find_words(remainder, f_dict, r_dict, min_len, depth=depth+1)
-
-        if not matches[key]: 
-            deadends += 1
-            del matches[key]
-
-        # At this point, we have thoroghly examined remainder, and there is no
-        # reason to look at it again.
-        remainders.add(str(remainder))
-        vvv > 2 and sys.stderr.write(f"{remainder.as_str} is a new dead end.\n")
-        not depth and exhausted_keys.add(key)
-
-    return matches if len(matches) else None
+    return root
 
 
 @trap
-def prune_dicts(filter:str, 
-    forward_dict:dict, 
-    reversed_dict:dict, 
-    minlen:int=0) -> tuple:
+def prune_dicts(filter:int, 
+    wv_dict:tuple) -> tuple:
     """
-    Apply the filter to the dictionaries, and return a tuple of
-        filtered (smaller) dictionaries.
     """
-    filter_XF = CountedWord(filter)
-
-    ###
-    # The reversed dict gets all the key/word combos that could 
-    # be part of anagrams of the filter.
-    ###
-    filtered_reversed_dict = { k : v for 
-        k, v in reversed_dict.items() 
-        if len(k) >= minlen and CountedWord(k) <= filter_XF }
-
-    ###
-    # With the forward filtering, we start with the contents
-    # of the reversed dict, pull out the words from the tuples,
-    # make them the keys, and use the common key as the value for
-    # each word.
-    ###
-    filtered_forward_dict = {}
-    for word_tuple in filtered_reversed_dict.values():
-        for word in word_tuple:
-            filtered_forward_dict[word] = forward_dict[word]
-
-    # print(f"forward {filtered_forward_dict}")
-    # print(f"reversed {filtered_reversed_dict}")
-        
-    return filtered_forward_dict, filtered_reversed_dict
+    return {k:v for k, v in wv_dict.items() if not filter % k}
 
 
 @trap
@@ -318,17 +219,14 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     returns -- an int from os.EX_*
     """
-    global vvv
     global tries
     global topline
     global deadends
     global longest_branch_explored
 
-    vvv = myargs.verbose
-
     # If we have been given a limit on CPU, set it.
     if myargs.cpu_time > 0: 
-        print(f"This execution is being limited to {myargs.cpu_time} CPU seconds.")
+        logger.info(f"This execution is being limited to {myargs.cpu_time} CPU seconds.")
         resource.setrlimit(resource.RLIMIT_CPU, (int(myargs.cpu_time), int(myargs.cpu_time)))
 
     # Always be nice. Each level of niceness lowers the priority
@@ -338,24 +236,25 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
     original_phrase = "".join(original_words)
-    original_phrase_XF = CountedWord(original_phrase)
+    original_phrase_value = word_value(original_phrase)
 
     min_len  = myargs.min_len
 
+    logger.info(f"{myargs.phrase=}")
     # We cannot work without a dictionary, so let's get it first.
-    print(myargs.phrase)
-    words, XF_words = dictloader(myargs.dictionary)
-    print(f"{len(words)=} {len(XF_words)}")
+    words= dictloader(myargs.dictionary)
+    logger.info(f"{len(words)=}")
 
     ###
     # We may not want to use any of the words that were in
     # the original phrase.
     ###
-    exclusions = []
     if myargs.no_dups:
         for w in original_words:
-            k = words.get(w)     # Get the corresponding XF_word
-            if k is not None: exclusions.append(k)
+            try:
+                del words[word_value(w)]
+            except:
+                pass
 
     ###
     # Check for a file of exclusions.
@@ -363,60 +262,44 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     if myargs.none_of:
         try:
             with open(myargs.none_of) as words:
-                exclusions.extend(words.read().lower().split())
+                for w in words.read().lower().split():
+                    try:
+                        del words[word_value(w)]
+                    except:
+                        pass
+
         except FileNotFoundError as e:
-            print(f"Unable to open {myargs.none_of}")
+            logger.debug(f"Unable to open {myargs.none_of}")
 
     ###
-    # Remove all of the words we have collected.
+    # The only words we need to consider are the ones that divide
+    # the target phrase evenly. This operation greatly reduces
+    # the size of the dictionary.
     ###
-    for w in exclusions: 
-        k = words.get(w)
-        if k is None: continue
-
-        t = XF_words[k]
-        t = tuple(_ for _ in t if _ != w)
-        if len(t):
-            XF_words[k] = t
-        else:
-            XF_words.pop(k)
-
-    ###
-    # We will make an initial pruning of the dictionaries, and then
-    # delete the plenum dictionaries by letting them go out of scope.
-    ###
-    words, XF_words = prune_dicts(original_phrase, words, XF_words, myargs.min_len)
-    print(f"Initial pruning: {len(XF_words)} keys representing {len(words)} words.", 
+    words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and 
+        original_phrase_value % k == 0}
+    logger.info(f"Initial pruning: {len(words)} keys", 
         file=sys.stderr)
 
     print(f"{top_line}", file=sys.stderr)
-    anagrams = find_words(original_phrase, words, XF_words, myargs.min_len)
-    anagrams = replace_XF_keys(anagrams, XF_words)
-    self_anagrams = XF_words.get(CountedWord(original_phrase).as_str, None)
-    if self_anagrams is not None and len(self_anagrams) > 1:
-        self_anagrams = tuple([_ for _ in self_anagrams if not _ == original_phrase])
-        anagrams[original_phrase] = self_anagrams
-    stats(0, len(words), "")
-    print(f"\n\n{tries} branches in the tree. {deadends} dead ends. Max depth {longest_branch_explored+1}.", 
-        file=sys.stderr)
-    print(f"{anagrams}")
-    print(f"{len(anagrams)} anagrams for {myargs.phrase} were found.")
 
+    ###
+    # Let's reduce the complexities of dragging around the dictionary, and
+    # just leave it here. We'll figure out which words correspond to the 
+    # factors when we return.
+    ###
+    anagrams = find_words(original_phrase_value, tuple(words.keys()))
+    logger.info(f"{anagrams=}")
+
+    stats(0, len(words), "")
     return sys.exit(os.EX_OK)
 
 
 if __name__ == "__main__":
 
-    
-
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
-    parser.add_argument('-t', '--cpu-time', type=float, default=0,
-        help="Set a maximum number of CPU seconds for execution.")
-    parser.add_argument('-x', '--cores', type=int, default=1, 
-        choices=range(1, cpucounter()),
-        help="Number of cores on which to execute.")
     parser.add_argument('-d', '--dictionary', type=str, required=True,
         help="Name of the dictionary of words, or a pickle of the dictionary.")
     parser.add_argument('-m', '--min-len', type=int, default=2,
@@ -427,10 +310,10 @@ if __name__ == "__main__":
         help="Disallow words that were in the original phrase.")
     parser.add_argument('--none-of', type=str, default=None,
         help="Exclude all words in the given filename.")
-    parser.add_argument('--order', type=int, choices=(0, 1, 2), default=1,
-        help="Key ordering: 0: random, 1:shortest first, 2:longest first")
-    parser.add_argument('-v', '--verbose', type=int, default=0, choices=(0, 1, 2, 3),
-        help="Be chatty about what is taking place -- on a scale of 0 to 3")
+    parser.add_argument('-t', '--cpu-time', type=float, default=0,
+        help="Set a maximum number of CPU seconds for execution.")
+    parser.add_argument('-v', '--verbose', type=int, default=logging.DEBUG,
+        help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}.")
 
     parser.add_argument('phrase', type=str,
         help="The phrase. If it contains spaces, it must be in quotes.")
@@ -438,6 +321,6 @@ if __name__ == "__main__":
     myargs = parser.parse_args()
     if myargs.nice: os.nice(myargs.nice)
     dump_cmdline(myargs)
-    order = myargs.order
+    urlogger.URLogger('anagrammar.log', level=myargs.verbose)    
 
     sys.exit(anagrammar_main(myargs))
