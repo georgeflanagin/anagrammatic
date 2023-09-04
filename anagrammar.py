@@ -165,8 +165,8 @@ def find_words(phrase_v:int,
         if residual in factors: # This is a terminal.
             root[residual] = True
             logger.info(f"Bingo. {residual=}")
-        elif residual < smallest_factor: # This is a dead-end.
-            root[residual] = False
+        elif residual != int(residual): # This is a dead-end.
+            continue
         else: # We don't yet know.
             root[residual] = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
         
