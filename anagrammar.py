@@ -14,6 +14,7 @@ import logging
 import math
 import multiprocessing
 import platform
+import pprint
 import random
 import resource
 import string
@@ -49,17 +50,23 @@ def time_print(s:str) -> None:
 
 ###
 # The alphabet order is not relevant to the algorithm. This order
-# was chosen to reduce the magnitude of the numbers slightly.
+# was chosen to reduce the magnitude of the numbers slightly. In
+# one 14 letter phrase, the reduction was from 60 bits to 50 bits.
+# keep in mind that all the factors of the large composite numbers
+# are small, so the division goes quickly.
 ###
-primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", (2, 3, 5, 7, 11, 
+primes26 = (2, 3, 5, 7, 11, 
     13, 17, 19, 23, 29, 
     31, 37, 41, 43, 47, 
     53, 59, 61, 67, 71, 
     73, 79, 83, 89, 97,
-    101 )))
+    101 )
+primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
 
 def word_value(word:str) -> int:
     return math.prod(primes[_] for _ in word)
+
+smallest_word = 1
 
 remainders = set()
 tries = 0
@@ -102,7 +109,11 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     return opt_string if return_it else ""
 
 
-@trap
+class TimeOut(Exception): pass
+
+time_out = 0
+
+# @trap
 def find_words(phrase_v:int, 
     factors:tuple, 
     depth:int=0) -> SloppyTree:
@@ -128,20 +139,32 @@ def find_words(phrase_v:int,
     """
 
     global longest_branch_explored
+    global smallest_word
 
     longest_branch_explored = max(depth+1, longest_branch_explored)
     matches = SloppyTree()
     root = matches[phrase_v]
+    half = phrase_v // smallest_word
 
     # Let's start with the largest factor.
-    factors = sorted(factors, reverse=True)
+
+    logger.info(f"{factors=}")
+    factors = tuple(sorted((f for f in factors if half >= f), reverse=True))
+    if not factors: 
+        root = False
+        return
     smallest_factor = factors[-1]
+    logger.info(f"{phrase_v=}")
+    logger.info(f"Reduced {factors=}")
 
     for factor in factors:
+        if not depth and time.time() - start_time > time_out:
+            raise TimeOut('timed out')
         logger.debug(f"{depth} : {factor}")
-        residual = phrase_v // factor
-        if residual == 1: # This is a terminal.
+        residual = phrase_v / factor
+        if residual in factors: # This is a terminal.
             root[residual] = True
+            logger.info(f"Bingo. {residual=}")
         elif residual < smallest_factor: # This is a dead-end.
             root[residual] = False
         else: # We don't yet know.
@@ -185,32 +208,6 @@ def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
 
 
 @trap
-def stats(depth:int, k_count:int, gkey:str) -> None:
-    """
-    Print a line of statistics.
-    """
-    global tries
-    global formatter
-    global deadends
-
-    info = resource.getrusage(resource.RUSAGE_SELF)
-    print(formatter.format(
-        depth+1,
-        tries,
-        deadends,
-        info[0],    # user mode time in seconds.
-        info[1],    # system mode time in seconds.
-        info[6],    # page faults not requiring I/O
-        info[7],    # page faults that do require I/O
-        info[14],   # giving up time
-        info[15],   # USEDQ, pre-emptive reschedule.
-        len(remainders),
-        k_count,
-        gkey
-        ),  end="\r", file=sys.stderr)
-    
-
-@trap
 def anagrammar_main(myargs:argparse.Namespace) -> int:
     """
     Let's build the anagram tree.
@@ -220,12 +217,15 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     returns -- an int from os.EX_*
     """
     global tries
+    global time_out
     global topline
     global deadends
     global longest_branch_explored
+    global smallest_word
 
     # If we have been given a limit on CPU, set it.
-    if myargs.cpu_time > 0: 
+    time_out = myargs.cpu_time
+    if time_out > 0: 
         logger.info(f"This execution is being limited to {myargs.cpu_time} CPU seconds.")
         resource.setrlimit(resource.RLIMIT_CPU, (int(myargs.cpu_time), int(myargs.cpu_time)))
 
@@ -239,6 +239,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     original_phrase_value = word_value(original_phrase)
 
     min_len  = myargs.min_len
+    for i in range(min_len): smallest_word *= primes26[i]
 
     logger.info(f"{myargs.phrase=}")
     # We cannot work without a dictionary, so let's get it first.
@@ -278,8 +279,9 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     ###
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and 
         original_phrase_value % k == 0}
-    logger.info(f"Initial pruning: {len(words)} keys", 
-        file=sys.stderr)
+    smallest_word = max(smallest_word, min(words))
+    logger.info(f"Initial pruning: {len(words)} keys") 
+    logger.info(f"{smallest_word=}")
 
     print(f"{top_line}", file=sys.stderr)
 
@@ -288,10 +290,23 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # just leave it here. We'll figure out which words correspond to the 
     # factors when we return.
     ###
-    anagrams = find_words(original_phrase_value, tuple(words.keys()))
-    logger.info(f"{anagrams=}")
+    anagrams = SloppyTree()
+    try:
+        anagrams = find_words(original_phrase_value, tuple(words.keys()))
+    except TimeOut:
+        pass
+    except Exception as e:
+        raise
+    finally:
+        logger.info(f"{anagrams=}")
 
-    stats(0, len(words), "")
+    if anagrams:
+        pprint.pprint(anagrams)
+    for k in anagrams:
+        if anagrams[k] is True:
+            print(f"{k=} {words[k]=}")
+
+
     return sys.exit(os.EX_OK)
 
 
@@ -314,13 +329,20 @@ if __name__ == "__main__":
         help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('-v', '--verbose', type=int, default=logging.DEBUG,
         help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}.")
+    parser.add_argument('-z', '--zap', action='store_true', 
+        help="If set, remove old logfile.")
 
     parser.add_argument('phrase', type=str,
         help="The phrase. If it contains spaces, it must be in quotes.")
 
     myargs = parser.parse_args()
     if myargs.nice: os.nice(myargs.nice)
-    dump_cmdline(myargs)
-    urlogger.URLogger('anagrammar.log', level=myargs.verbose)    
+    if myargs.zap:
+        try:
+            os.unlink('anagrammar.log')
+        except:
+            pass
+    logger = urlogger.URLogger(logfile='anagrammar.log', level=myargs.verbose)    
+    logger.info(dump_cmdline(myargs))
 
     sys.exit(anagrammar_main(myargs))
