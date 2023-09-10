@@ -73,6 +73,7 @@ tries = 0
 deadends = 0
 gkey = ""
 longest_branch_explored = 0
+words={}
 
 """        0123456789 123456789 123456789 123456789 123456789 """
 top_line ="""
@@ -113,7 +114,7 @@ class TimeOut(Exception): pass
 
 time_out = 0
 
-# @trap
+@trap
 def find_words(phrase_v:int, 
     factors:tuple, 
     depth:int=0) -> SloppyTree:
@@ -137,7 +138,8 @@ def find_words(phrase_v:int,
         then this is a dead-end, and the parent of the leaf
         cannot be a part of an anagram.
     """
-
+    global words
+    logger.info(f"{depth=} , {phrase_v=} , {words.get(phrase_v)=}")
     global longest_branch_explored
     global smallest_word
 
@@ -148,29 +150,33 @@ def find_words(phrase_v:int,
 
     # Let's start with the largest factor.
 
-    logger.info(f"{factors=}")
     factors = tuple(sorted((f for f in factors if half >= f), reverse=True))
+    logger.info(f"{phrase_v=} {factors=}")
     if not factors: 
         root = False
         return
     smallest_factor = factors[-1]
-    logger.info(f"{phrase_v=}")
     logger.info(f"Reduced {factors=}")
 
-    for factor in factors:
-        if not depth and time.time() - start_time > time_out:
-            raise TimeOut('timed out')
-        logger.debug(f"{depth} : {factor}")
-        residual = phrase_v / factor
-        if residual in factors: # This is a terminal.
-            root[residual] = True
-            logger.info(f"Bingo. {residual=}")
-        elif residual != int(residual): # This is a dead-end.
-            continue
-        else: # We don't yet know.
-            root[residual] = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
-        
-    return root
+    try:
+        for factor in factors:
+            if not depth and time.time() - start_time > time_out:
+                raise TimeOut('timed out')
+            # logger.debug(f"{depth} : {factor}")
+            residual = phrase_v / factor
+            if residual in factors: # This is a terminal.
+                root[factor] = residual
+                logger.info(f"Bingo. {factor=} {words.get(residual)=}")
+            elif residual < smallest_word: # This is a dead-end.
+                root[factor] = False
+            elif residual == int(residual): # We don't yet know.
+                root[factor] = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
+            else:
+                root[factor] = None
+    except:
+        raise
+    finally:
+        return root
 
 
 @trap
@@ -222,6 +228,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     global deadends
     global longest_branch_explored
     global smallest_word
+    global words
 
     # If we have been given a limit on CPU, set it.
     time_out = myargs.cpu_time
@@ -244,7 +251,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     logger.info(f"{myargs.phrase=}")
     # We cannot work without a dictionary, so let's get it first.
     words= dictloader(myargs.dictionary)
-    logger.info(f"{len(words)=}")
+    logger.info(f"Dictionary of {len(words)} words.")
 
     ###
     # We may not want to use any of the words that were in
@@ -280,10 +287,10 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and 
         original_phrase_value % k == 0}
     smallest_word = max(smallest_word, min(words))
-    logger.info(f"Initial pruning: {len(words)} keys") 
+    logger.info(f"Initial pruning for {original_phrase_value=}: {words=}") 
     logger.info(f"{smallest_word=}")
 
-    print(f"{top_line}", file=sys.stderr)
+    # print(f"{top_line}", file=sys.stderr)
 
     ###
     # Let's reduce the complexities of dragging around the dictionary, and
@@ -292,7 +299,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     ###
     anagrams = SloppyTree()
     try:
-        anagrams = find_words(original_phrase_value, tuple(words.keys()))
+        anagrams[original_phrase_value] = find_words(original_phrase_value, tuple(words.keys()))
     except TimeOut:
         pass
     except Exception as e:
@@ -300,11 +307,15 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     finally:
         logger.info(f"{anagrams=}")
 
-    if anagrams:
-        pprint.pprint(anagrams)
-    for k in anagrams:
-        if anagrams[k] is True:
-            print(f"{k=} {words[k]=}")
+
+    numeric_anagrams = set()
+    for combo in anagrams.tree_as_table():
+        if None not in combo:
+            numeric_anagrams.add(tuple(sorted(combo, reverse=True)))
+
+    for ngram in numeric_anagrams:
+        text_gram = tuple(words.get(_) for _ in ngram)
+        print(text_gram)
 
 
     return sys.exit(os.EX_OK)
@@ -325,7 +336,7 @@ if __name__ == "__main__":
         help="Disallow words that were in the original phrase.")
     parser.add_argument('--none-of', type=str, default=None,
         help="Exclude all words in the given filename.")
-    parser.add_argument('-t', '--cpu-time', type=float, default=0,
+    parser.add_argument('-t', '--cpu-time', type=float, default=60,
         help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('-v', '--verbose', type=int, default=logging.DEBUG,
         help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}.")
