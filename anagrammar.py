@@ -139,40 +139,40 @@ def find_words(phrase_v:int,
         cannot be a part of an anagram.
     """
     global words
-    logger.info(f"{depth=} , {phrase_v=} , {words.get(phrase_v)=}")
+    logger.info(f"{depth=} , {phrase_v=}")
     global longest_branch_explored
     global smallest_word
 
     longest_branch_explored = max(depth+1, longest_branch_explored)
     matches = SloppyTree()
     root = matches[phrase_v]
-    half = phrase_v // smallest_word
 
     # Let's start with the largest factor.
 
-    factors = tuple(sorted((f for f in factors if half >= f), reverse=True))
+    factors = tuple(sorted(prune_dicts(phrase_v, factors)))
+
     logger.info(f"{phrase_v=} {factors=}")
     if not factors: 
         root = False
         return
     smallest_factor = factors[-1]
+    largest_factor = factors[0]
     logger.info(f"Reduced {factors=}")
 
     try:
         for factor in factors:
             if not depth and time.time() - start_time > time_out:
                 raise TimeOut('timed out')
-            # logger.debug(f"{depth} : {factor}")
             residual = phrase_v / factor
             if residual in factors: # This is a terminal.
                 root[factor] = residual
-                logger.info(f"Bingo. {factor=} {words.get(residual)=}")
-            elif residual < smallest_word: # This is a dead-end.
+                logger.info(f"Bingo. {factor=} {residual=}")
+            elif residual < largest_word: # This is a dead-end.
+                logger.info(f"Deadend. {factor=} {residual=}")
                 root[factor] = False
-            elif residual == int(residual): # We don't yet know.
+            else: # We don't yet know.
+                logger.info(f"Recursing. {factor=} {residual=}")
                 root[factor] = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
-            else:
-                root[factor] = None
     except:
         raise
     finally:
@@ -181,10 +181,10 @@ def find_words(phrase_v:int,
 
 @trap
 def prune_dicts(filter:int, 
-    wv_dict:tuple) -> tuple:
+    candidates:tuple) -> tuple:
     """
     """
-    return {k:v for k, v in wv_dict.items() if not filter % k}
+    return {k for k in candidates if not filter % k}
 
 
 @trap
