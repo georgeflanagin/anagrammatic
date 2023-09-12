@@ -138,7 +138,7 @@ def find_words(phrase_v:int,
         then this is a dead-end, and the parent of the leaf
         cannot be a part of an anagram.
     """
-    global words
+    global words, tries, deadends
     logger.info(f"{depth=} , {phrase_v=}")
     global longest_branch_explored
     global smallest_word
@@ -151,30 +151,32 @@ def find_words(phrase_v:int,
 
     factors = tuple(sorted(prune_dicts(phrase_v, factors)))
 
-    logger.info(f"{phrase_v=} {factors=}")
     if not factors: 
         root = False
         return
-    smallest_factor = factors[-1]
-    largest_factor = factors[0]
-    logger.info(f"Reduced {factors=}")
+    smallest_factor = factors[0]
+    largest_factor = factors[-1]
 
     try:
         for factor in factors:
-            if not depth and time.time() - start_time > time_out:
-                raise TimeOut('timed out')
-            residual = phrase_v / factor
-            if residual in factors: # This is a terminal.
+            tries += 1
+            logger.info(f"{factor=}")
+            if not depth and time.time() - start_time > time_out: raise TimeOut('timed out')
+
+            residual, remainder = divmod(phrase_v, factor)
+            if remainder:
+                logger.warning(f"This is unusual: {phrase_v=} {factor=} {residual=} {remainder=}")
+            elif residual in factors: # This is a terminal.
                 root[factor] = residual
-                logger.info(f"Bingo. {factor=} {residual=}")
-            elif residual < largest_word: # This is a dead-end.
-                logger.info(f"Deadend. {factor=} {residual=}")
-                root[factor] = False
+            elif residual < smallest_factor: # This is a dead-end.
+                deadends += 1
             else: # We don't yet know.
                 logger.info(f"Recursing. {factor=} {residual=}")
                 root[factor] = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
-    except:
+    except Exception as e:
+        logger.error(str(e))
         raise
+
     finally:
         return root
 
@@ -185,32 +187,6 @@ def prune_dicts(filter:int,
     """
     """
     return {k for k in candidates if not filter % k}
-
-
-@trap
-def replace_XF_keys(t:SloppyTree, replacements:dict) -> SloppyTree:
-    """
-    Replace the sorted strings that we have been using in the anagrammar with
-    the tuples of words that can be formed from the sorted string. Tuples
-    are hashable, so they can be used as keys
-    """
-    new_tree = SloppyTree()
-    if t is None: return new_tree
-
-    # Find out if we are at a leaf.
-    if not isinstance(t, SloppyTree): 
-        if isinstance(replacements[t], tuple) and len(replacements[t]) == 1:
-            return replacements[t][0]
-
-        return replacements[t]    
-
-    for k in t:
-        result = replace_XF_keys(t[k], replacements)
-        new_key = replacements[k] if len(replacements[k]) > 1 else replacements[k][0]
-        new_tree[new_key] = result
-        # new_tree[replacements[k]] = replace_XF_keys(t[k], replacements)
-
-    return new_tree
 
 
 @trap
@@ -286,9 +262,11 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     ###
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and 
         original_phrase_value % k == 0}
-    smallest_word = max(smallest_word, min(words))
-    logger.info(f"Initial pruning for {original_phrase_value=}: {words=}") 
+    smallest_word = min(words) if words else 0
+    largest_word = max(words) if words else 0
+    logger.info(f"Initial pruning for {original_phrase_value=} {len(words)=}") 
     logger.info(f"{smallest_word=}")
+    logger.info(f"{largest_word=}")
 
     # print(f"{top_line}", file=sys.stderr)
 
@@ -302,6 +280,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         anagrams[original_phrase_value] = find_words(original_phrase_value, tuple(words.keys()))
     except TimeOut:
         pass
+    except KeyboardInterrupt as e:
+        print("You pressed control C")
     except Exception as e:
         raise
     finally:
@@ -311,12 +291,13 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     numeric_anagrams = set()
     for combo in anagrams.tree_as_table():
         if None not in combo:
-            numeric_anagrams.add(tuple(sorted(combo, reverse=True)))
+            numeric_anagrams.add(tuple(sorted(combo, reverse=True)[1:]))
 
     for ngram in numeric_anagrams:
         text_gram = tuple(words.get(_) for _ in ngram)
         print(text_gram)
 
+    print(f"{tries=} {deadends=}")
 
     return sys.exit(os.EX_OK)
 
