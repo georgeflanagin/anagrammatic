@@ -172,7 +172,8 @@ def find_words(phrase_v:int,
                 deadends += 1
             else: # We don't yet know.
                 logger.info(f"Recursing. {factor=} {residual=}")
-                root[factor] = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
+                t = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
+                if len(t): root[factor] = t
     except Exception as e:
         logger.error(str(e))
         raise
