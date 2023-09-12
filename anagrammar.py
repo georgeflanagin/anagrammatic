@@ -71,6 +71,7 @@ smallest_word = 1
 remainders = set()
 tries = 0
 deadends = 0
+grams = 0
 gkey = ""
 longest_branch_explored = 0
 words={}
@@ -81,19 +82,6 @@ top_line ="""
    | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
 ---+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
 formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9} keys => {:>6}:{}"
-
-###
-# There is no standard way to do this, particularly with virtualization.
-###
-@trap
-def cpucounter() -> int:
-    names = {
-        'macOS': lambda : os.cpu_count(),
-        'Linux': lambda : len(os.sched_getaffinity(0)),
-        'Windows' : lambda : os.cpu_count()
-        }
-    return names[platform.platform().split('-')[0]]()
-
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -138,7 +126,7 @@ def find_words(phrase_v:int,
         then this is a dead-end, and the parent of the leaf
         cannot be a part of an anagram.
     """
-    global words, tries, deadends
+    global words, tries, deadends, grams
     logger.info(f"{depth=} , {phrase_v=}")
     global longest_branch_explored
     global smallest_word
@@ -160,6 +148,7 @@ def find_words(phrase_v:int,
     try:
         for factor in factors:
             tries += 1
+            if not tries % 100000: print(f"{round(time.time()-start_time, 3)} : {tries} {grams} {deadends}")
             logger.info(f"{factor=}")
             if not depth and time.time() - start_time > time_out: raise TimeOut('timed out')
 
@@ -168,6 +157,7 @@ def find_words(phrase_v:int,
                 logger.warning(f"This is unusual: {phrase_v=} {factor=} {residual=} {remainder=}")
             elif residual in factors: # This is a terminal.
                 root[factor] = residual
+                grams += 1
             elif residual < smallest_factor: # This is a dead-end.
                 deadends += 1
             else: # We don't yet know.
@@ -268,7 +258,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         if None not in combo:
             numeric_anagrams.add(tuple(sorted(combo, reverse=True)[1:]))
 
-    for ngram in numeric_anagrams:
+    for ngram in sorted(list(numeric_anagrams)):
         text_gram = tuple(words.get(_) for _ in ngram)
         print(text_gram)
 
