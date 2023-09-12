@@ -173,7 +173,7 @@ def find_words(phrase_v:int,
             else: # We don't yet know.
                 logger.info(f"Recursing. {factor=} {residual=}")
                 t = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
-                if len(t): root[factor] = t
+                if t: root[factor] = t
     except Exception as e:
         logger.error(str(e))
         raise
@@ -229,32 +229,6 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # We cannot work without a dictionary, so let's get it first.
     words= dictloader(myargs.dictionary)
     logger.info(f"Dictionary of {len(words)} words.")
-
-    ###
-    # We may not want to use any of the words that were in
-    # the original phrase.
-    ###
-    if myargs.no_dups:
-        for w in original_words:
-            try:
-                del words[word_value(w)]
-            except:
-                pass
-
-    ###
-    # Check for a file of exclusions.
-    ###
-    if myargs.none_of:
-        try:
-            with open(myargs.none_of) as words:
-                for w in words.read().lower().split():
-                    try:
-                        del words[word_value(w)]
-                    except:
-                        pass
-
-        except FileNotFoundError as e:
-            logger.debug(f"Unable to open {myargs.none_of}")
 
     ###
     # The only words we need to consider are the ones that divide
@@ -314,10 +288,6 @@ if __name__ == "__main__":
         help="Minimum length of any word in the anagram")
     parser.add_argument('--nice', type=int, choices=range(0, 20), default=0,
         help="Niceness may affect execution time.")
-    parser.add_argument('--no-dups', action='store_true',
-        help="Disallow words that were in the original phrase.")
-    parser.add_argument('--none-of', type=str, default=None,
-        help="Exclude all words in the given filename.")
     parser.add_argument('-t', '--cpu-time', type=float, default=60,
         help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('-v', '--verbose', type=int, default=logging.DEBUG,
