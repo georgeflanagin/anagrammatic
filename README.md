@@ -49,35 +49,12 @@ Windows is a BYODictionary experience.
 
 ### The tuning parameters
 
-`-m`, `--min-len` This tells the anagrammar the shortest word to consider. 
-
-`-d`, `--dictionary` In this project, I have provided two dictionaries already
-compiled, but you can compile your own. The one named `mit10000` is built
-from the 10,000 most common words in English. The one named `words` is much
-larger, coming from the New Webster's Dictionary that is included with 
-Linux in `/usr/share/dict/words`. Each dictionary is a pair of files.
-
-`-t`, `--cpu-time` The program can be caused to stop after a given number of seconds
-of execution. I put this in when I was developing the program, and I never got
-around to removing it.
-
-`--verbose` This produces a running narrative to the screen to give you
-the illusion that the program is making progress. 
-
-### Start with something small.
-
-How about *git hub is great* as the phrase? First, source the `anagram.bash` 
-file, and you will then be able to just type `anagram` to run the program. The 
-output will appear on the screen, which is not always useful if there are a lot
-of anagrams to your phrase. In the example below, I directed the output to `x.out`.
-
 ```bash
-[~]: anagram --help
-usage: anagrammar [-h] -d DICTIONARY [-m MIN_LEN] 
+anagrammar [-h] -d DICTIONARY [-m MIN_LEN] 
     [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] 
     [-t CPU_TIME] 
-    [-v VERBOSE] 
-    [-z] 
+    [-v VERBOSE]
+    [-z]
     phrase
 
 A brute force anagram finder.
@@ -90,72 +67,89 @@ optional arguments:
   -d DICTIONARY, --dictionary DICTIONARY
                         Name of the dictionary of words, or a pickle of the dictionary.
   -m MIN_LEN, --min-len MIN_LEN
-                        Minimum length of any word in the anagram
+                        Minimum length of any word in the anagram. The default is 3.
   --nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}
-                        Niceness may affect execution time.
+                        Niceness may affect execution time. The default is 7, which is about twice as nice as the average program.
   -t CPU_TIME, --cpu-time CPU_TIME
                         Set a maximum number of CPU seconds for execution.
   -v VERBOSE, --verbose VERBOSE
-                        Set the logging level on a scale from 10 to 50.
-  -z, --zap             If set, remove old logfile.
-
+                        Set the logging level on a scale from 10 to 50. The default is 35, which only logs errors.
+  -z, --zap             If set, remove old logfile[s].
 ```
 
-`x.out` will contain a printed tree in which each path from the
-root node to a leaf is an anagram of the target phrase, `git hub is great`.
+`-m`, `--min-len` This tells the anagrammar the shortest word to consider
+when building the initial list of possible words. The default value is
+`3` because a lot of anagrams with two letter words are uninteresting.
 
-Here is what the output looks like:
+`-d`, `--dictionary` In this project, I have provided a dictionary built
+from Google's list of 20,000 words.  The one named `words` is much larger,
+coming from the New Webster's Dictionary that is included with Linux in
+`/usr/share/dict/words`.
+
+`-t`, `--cpu-time` The program can be caused to stop after a given number of seconds
+of execution. I put this in when I was developing the program, and I never got
+around to removing it.
+
+`--verbose` Takes a number that corresponds to the loglevel. The default is
+`35`, and this value eliminates almost all output.
+
+### Start with something small.
+
+How about *george flanagin* as the phrase? First, source the `anagram.bash` 
+file, and you will then be able to just type `anagram` to run the program. The 
+output will appear on the screen, which is not always useful if there are a lot
+of anagrams to your phrase.
+
+Here is what the output looks like when we route the anagrams to `gkf.txt`.
 
 ```
-Loading dictionaries.
-Dictionaries loaded.
-{   'bath': {'gig': {'tri': ('use', 'sue'), 'uri': ('est', 'ste', 'set')}},
-    'beth': {'gig': {'tri': ('usa', 'aus')}},
-    'bigger': {'utah': ('ist', 'its', 'sit'), ('shut', 'thus'): 'ati'},
-    'biggest': {'hat': 'uri', ('air', 'ira'): 'thu'},
-    'birth': {'suit': 'gage'},
-    'bright': {'suit': 'age'},
-    'butt': {'gage': 'irish'},
-    'eight': {'suit': 'grab'},
-    'gate': {'gui': {'bit': 'hrs'}},
-    'gather': {'bits': 'gui'},
-    'gratis': {'huge': 'bit'},
-    'gratuit': {'big': 'she'},
-    'guitar': {'beth': ('sig', 'gis')},
-    'guitars': {'big': 'the'},
-    'hair': {   'get': {('sig', 'gis'): ('tub', 'but')},
-                'gst': {'big': 'tue', 'bug': 'tie', 'gui': 'bet'}},
-    'hats': {'gui': {'bit': 'reg'}},
-    'her': {'big': {'gui': 'stat'}},
-    'hub': {   'gig': {('air', 'ira'): 'test', ('era', 'are', 'ear'): 'tits'},
-               'tit': {('air', 'ira'): 'eggs'},
-               ('ist', 'its', 'sit'): {'ati': 'greg'}},
-    'huge': {('ist', 'its', 'sit'): {'big': ('rat', 'tar', 'art')}},
-    'irish': {'gage': 'butt'},
-    'itsa': {'egg': {'tri': 'hub'}},
-    'rights': {'bite': 'aug'},
-    'suite': {'right': ('bag', 'gba')},
-    'tags': {'gui': {'bit': 'her'}},
-    'that': {'big': {'gui': ('ser', 'res'), 'sie': 'rug'}, ('sig', 'gis'): {'big': 'eur'}},
-    'tiger': {'sight': 'abu', 'thai': 'bugs'},
-    'tigers': {'thai': 'bug'},
-    'tight': {'urge': 'bias'},
-    'true': {'big': {'tag': 'his'}},
-    'urge': {'hit': {'big': 'sat'}, 'tit': {'big': ('has', 'ash')}},
-    ('beat', 'beta'): {   'gig': {'hit': ('sur', 'usr'), 'thu': ('irs', 'sir', 'sri')},
-                          ('sig', 'gis'): {'rug': 'hit'}},
-    ('heat', 'hate'): {'big': {'gui': 'str', 'uri': 'gst'}, 'gig': {'tri': ('usb', 'sub', 'bus')}},
-    ('sage', 'ages', 'sega'): {'hit': {'bug': 'tri'}},
-    ('sig', 'gis'): {'big': {'eur': 'that'}},
-    ('this', 'shit', 'hits', 'hist'): {   'big': {'tue': 'arg'},
-                                          'gig': {('tub', 'but'): ('era', 'are', 'ear')},
-                                          'gui': {'get': ('bar', 'bra')}},
-    ('thru', 'hurt', 'ruth'): {   'big': {'isa': 'get', 'sie': 'tag', 'tie': 'gas'},
-                                  'gig': {'bit': 'sea', 'sie': ('bat', 'tba', 'tab'), 'tie': 'abs'},
-                                  ('sig', 'gis'): {'big': ('eat', 'ate', 'tea')}}}
+anagram -d words -m 3 georgeflanagin > gkf.txt
+ --cpu-time 60 --dictionary words --min-len 3 --nice 7 --phrase georgeflanagin --verbose 35 --zap False
+
+0.857 : 262144
+1.496 : 524288
+2.031 : 786432
+2.42user 0.03system 0:02.46elapsed 99%CPU (0avgtext+0avgdata 110416maxresident)k
+0inputs+6968outputs (0major+24128minor)pagefaults 0swaps
 ```
 
-I think "GUI tags bit her" is perhaps the best of the lot.
+In the `gkf.txt` file, the most interesting anagram to me is `long fearing age`,
+and at the bottom of the file we see the "stats:"
+
+```
+Tree had 194092 paths.
+Tree had 39147 distinct paths.
+tries=803821 deadends=414962
+```
+
+The apparent speed is mainly due to running the program on a reasonably
+fast CPU. The big number, `803821`, is the number of edges in the 
+exhaustive graph. `414962` is the number of edges whose leaves are 
+a value (combination of letters) that do not spell a word in the dictionary.
+After the removing the dead-end edges, there were `194092` paths (NOTE: a path
+consists of at least one edge, but generally more.) from the root to a valid
+leaf.
+Of course, many are duplicates: *long -> fearing -> age* is the same as 
+*age -> long -> fearing*. After removing the duplicates,
+there were only `39147` anagrams of the original phrase.
+
+You will notice in the output that the results are written this way, one
+anagram per line.
+
+```python
+(('fragile',), ('gag',), ('enon', 'neon', 'none'))
+```
+
+Many small groups of characters spell more than one word, such
+as `('enon', 'neon', 'none')`, and this allows for a more 
+compact representation than something like:
+
+```python
+('fragile', 'gag', 'enon')
+('fragile', 'gag', 'neon')
+('fragile', 'gag', 'none')
+```
+
 
 ## Trivia Q & A.
 
