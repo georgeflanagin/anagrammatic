@@ -8,8 +8,6 @@ import sys
 
 import argparse
 import collections
-from   collections import defaultdict
-import gc
 import math
 import platform
 import pickle
@@ -321,7 +319,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="dictbuilder", 
         description="A program to maintain dictionaries used in anagrammar.")
 
-    parser.add_argument('-d', '--bare', action='store_true',
+    parser.add_argument('-b', '--bare', action='store_true',
         help="Use only the words in the input dictionary rather than the built-in 2, 3, 4, and 5 letter words.")
     parser.add_argument('-i', '--input', type=str, 
         required=True, help="The name[s] of the input dictionaries.") 

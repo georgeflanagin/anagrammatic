@@ -68,20 +68,11 @@ def word_value(word:str) -> int:
 
 smallest_word = 1
 
-remainders = set()
 tries = 0
 deadends = 0
 grams = 0
-gkey = ""
 longest_branch_explored = 0
 words={}
-
-"""        0123456789 123456789 123456789 123456789 123456789 """
-top_line ="""
- D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  | 
-   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
----+--------+--------+--------+--------+--------+-------+------+-------+---------|"""
-formatter=" {:>2} {: >8} {: >8} {: >8.2f} {: >8.2f} {:> 8} {: >7} {:>6} {:>6} {:>9} keys => {:>6}:{}"
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -254,13 +245,15 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
 
     numeric_anagrams = set()
-    for combo in anagrams.tree_as_table():
+    for j, combo in enumerate(anagrams.tree_as_table()):
         if None not in combo:
             numeric_anagrams.add(tuple(sorted(combo, reverse=True)[1:]))
 
-    for ngram in sorted(list(numeric_anagrams)):
+    for i, ngram in enumerate(sorted(list(numeric_anagrams))):
         text_gram = tuple(words.get(_) for _ in ngram)
         print(text_gram)
+    print(f"Tree had {j+1} paths.")
+    print(f"Tree had {i+1} distinct paths.")
 
     print(f"{tries=} {deadends=}")
 
@@ -280,7 +273,7 @@ if __name__ == "__main__":
         help="Niceness may affect execution time.")
     parser.add_argument('-t', '--cpu-time', type=float, default=60,
         help="Set a maximum number of CPU seconds for execution.")
-    parser.add_argument('-v', '--verbose', type=int, default=logging.DEBUG,
+    parser.add_argument('-v', '--verbose', type=int, default=35,
         help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}.")
     parser.add_argument('-z', '--zap', action='store_true', 
         help="If set, remove old logfile.")
