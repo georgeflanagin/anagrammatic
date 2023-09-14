@@ -13,10 +13,6 @@ import argparse
 import logging
 import math
 import multiprocessing
-import platform
-import pprint
-import random
-import resource
 import string
 import time
 
@@ -25,7 +21,7 @@ import time
 ###
 
 from   urdecorators  import trap
-from   dictbuilder   import dictbuilder, dictloader
+from   dictbuilder   import dictloader
 from   sloppytree    import SloppyTree
 import urlogger
 
@@ -33,7 +29,7 @@ import urlogger
 # Credits
 ###
 __author__ = 'George Flanagin'
-__copyright__ = 'Copyright 2020'
+__copyright__ = 'Copyright 2023'
 __credits__ = None
 __version__ = str(1/math.pi)
 __maintainer__ = 'George Flanagin'
@@ -45,8 +41,6 @@ __license__ = 'MIT'
 # Just for curiosity, I wonder how long these things take.
 ###
 start_time = time.time()
-def time_print(s:str) -> None:
-    print("{} : {}".format(round(time.time()-start_time, 3), s))
 
 ###
 # The alphabet order is not relevant to the algorithm. This order
@@ -66,13 +60,16 @@ primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
 def word_value(word:str) -> int:
     return math.prod(primes[_] for _ in word)
 
-smallest_word = 1
-
-tries = 0
+current_root = 1
 deadends = 0
 grams = 0
-longest_branch_explored = 0
+interval = 1<<18
+seen_factors = set()
+smallest_word = 1
+time_out = 0
+tries = 0
 words={}
+
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -88,10 +85,6 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
 
     return opt_string if return_it else ""
 
-
-class TimeOut(Exception): pass
-
-time_out = 0
 
 @trap
 def find_words(phrase_v:int, 
@@ -119,42 +112,66 @@ def find_words(phrase_v:int,
     """
     global words, tries, deadends, grams
     logger.info(f"{depth=} , {phrase_v=}")
-    global longest_branch_explored
     global smallest_word
+    global seen_factors
+    global current_root
+    global interval
 
-    longest_branch_explored = max(depth+1, longest_branch_explored)
     matches = SloppyTree()
     root = matches[phrase_v]
 
-    # Let's start with the largest factor.
-
-    factors = tuple(sorted(prune_dicts(phrase_v, factors)))
+    # Let's start with the smallest factor. 
+    factors = tuple(sorted(prune_dict(phrase_v, factors)))
 
     if not factors: 
         root = False
         return
+
     smallest_factor = factors[0]
-    largest_factor = factors[-1]
 
     try:
         for factor in factors:
             tries += 1
-            if not tries % 100000: print(f"{round(time.time()-start_time, 3)} : {tries} {grams} {deadends}")
-            logger.info(f"{factor=}")
-            if not depth and time.time() - start_time > time_out: raise TimeOut('timed out')
+            if tries % interval == 0: 
+                sys.stderr.write(f"{round(time.time()-start_time, 3)} : {tries}\n")
 
-            residual, remainder = divmod(phrase_v, factor)
-            if remainder:
-                logger.warning(f"This is unusual: {phrase_v=} {factor=} {residual=} {remainder=}")
-            elif residual in factors: # This is a terminal.
+            # Tree pruning takes place here in two steps.
+            # At depth == 0, we add this factor to the list of seen factors,
+            #   and set the current_root to the current factor.
+            if not depth: 
+                seen_factors.add(factor)
+                current_root = factor
+
+            # at depth > 0, we consider whether we have already seen this 
+            # factor at depth == 0 provided it is not the current root
+            # of this subtree. This guards against the case in which the 
+            # same factor might appear twice or more. 
+            elif factor in seen_factors and factor - current_root:
+                deadends += 1
+                continue
+
+            # For clarity.
+            else:
+                pass    
+    
+            # Note that we are not checking the timeout every trip through 
+            # the loop --- just each new factor at the root level.
+            if not depth and time.time() - start_time > time_out: 
+                sys.stderr.write(f"{time_out=} exceeded.\n")
+                sys.exit(os.EX_CONFIG)
+
+            residual = phrase_v // factor
+            if residual in factors: # Found one.
                 root[factor] = residual
                 grams += 1
+
             elif residual < smallest_factor: # This is a dead-end.
                 deadends += 1
+
             else: # We don't yet know.
-                logger.info(f"Recursing. {factor=} {residual=}")
-                t = find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)
-                if t: root[factor] = t
+                if (t := find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)):
+                    root[factor] = t
+
     except Exception as e:
         logger.error(str(e))
         raise
@@ -164,11 +181,12 @@ def find_words(phrase_v:int,
 
 
 @trap
-def prune_dicts(filter:int, 
+def prune_dict(filter:int, 
     candidates:tuple) -> tuple:
     """
+    This is function just for clarity
     """
-    return {k for k in candidates if not filter % k}
+    return tuple(k for k in candidates if not filter % k)
 
 
 @trap
@@ -184,25 +202,25 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     global time_out
     global topline
     global deadends
-    global longest_branch_explored
     global smallest_word
     global words
 
     # If we have been given a limit on CPU, set it.
     time_out = myargs.cpu_time
-    if time_out > 0: 
-        logger.info(f"This execution is being limited to {myargs.cpu_time} CPU seconds.")
-        resource.setrlimit(resource.RLIMIT_CPU, (int(myargs.cpu_time), int(myargs.cpu_time)))
 
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
     # of what it was.
-    os.nice(7)
+    os.nice(myargs.nice)
 
     original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
     original_phrase = "".join(original_words)
     original_phrase_value = word_value(original_phrase)
-
+    
+    # smallest_word is a little bit of a misnomer. It is the word
+    # with the lowest possible numeric value. Let's initialize
+    # it as the product of the first n primes, where n is the 
+    # min_len of the words we are considering.
     min_len  = myargs.min_len
     for i in range(min_len): smallest_word *= primes26[i]
 
@@ -211,33 +229,27 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     words= dictloader(myargs.dictionary)
     logger.info(f"Dictionary of {len(words)} words.")
 
-    ###
     # The only words we need to consider are the ones that divide
     # the target phrase evenly. This operation greatly reduces
     # the size of the dictionary.
-    ###
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and 
         original_phrase_value % k == 0}
     smallest_word = min(words) if words else 0
     largest_word = max(words) if words else 0
+
     logger.info(f"Initial pruning for {original_phrase_value=} {len(words)=}") 
     logger.info(f"{smallest_word=}")
     logger.info(f"{largest_word=}")
 
-    # print(f"{top_line}", file=sys.stderr)
-
-    ###
     # Let's reduce the complexities of dragging around the dictionary, and
-    # just leave it here. We'll figure out which words correspond to the 
-    # factors when we return.
-    ###
+    # just leave it here for later review. We'll figure out which words 
+    # correspond to the factors when we return with the anagrams.
     anagrams = SloppyTree()
     try:
         anagrams[original_phrase_value] = find_words(original_phrase_value, tuple(words.keys()))
-    except TimeOut:
-        pass
     except KeyboardInterrupt as e:
         print("You pressed control C")
+        sys.exit(os.EX_OK) 
     except Exception as e:
         raise
     finally:
@@ -252,6 +264,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     for i, ngram in enumerate(sorted(list(numeric_anagrams))):
         text_gram = tuple(words.get(_) for _ in ngram)
         print(text_gram)
+
     print(f"Tree had {j+1} paths.")
     print(f"Tree had {i+1} distinct paths.")
 
@@ -262,33 +275,36 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
 if __name__ == "__main__":
 
+    vm_callable = f"{os.path.basename(__file__)[:-3]}"
+    logfile     = f"{vm_callable}.log"
+    main        = f"{vm_callable}_main"
+
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
     parser.add_argument('-d', '--dictionary', type=str, required=True,
         help="Name of the dictionary of words, or a pickle of the dictionary.")
-    parser.add_argument('-m', '--min-len', type=int, default=2,
-        help="Minimum length of any word in the anagram")
-    parser.add_argument('--nice', type=int, choices=range(0, 20), default=0,
-        help="Niceness may affect execution time.")
+    parser.add_argument('-m', '--min-len', type=int, default=3,
+        help="Minimum length of any word in the anagram. The default is 3.")
+    parser.add_argument('--nice', type=int, choices=range(0, 20), default=7,
+        help="Niceness may affect execution time. The default is 7, which is about twice as nice as the average program.")
     parser.add_argument('-t', '--cpu-time', type=float, default=60,
         help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('-v', '--verbose', type=int, default=35,
-        help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}.")
+        help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}. The default is 35, which only logs errors.")
     parser.add_argument('-z', '--zap', action='store_true', 
-        help="If set, remove old logfile.")
+        help="If set, remove old logfile[s].")
 
     parser.add_argument('phrase', type=str,
         help="The phrase. If it contains spaces, it must be in quotes.")
 
     myargs = parser.parse_args()
-    if myargs.nice: os.nice(myargs.nice)
     if myargs.zap:
         try:
-            os.unlink('anagrammar.log')
+            os.unlink(logfile)
         except:
             pass
-    logger = urlogger.URLogger(logfile='anagrammar.log', level=myargs.verbose)    
+    logger = urlogger.URLogger(logfile=logfile, level=myargs.verbose)    
     logger.info(dump_cmdline(myargs))
 
-    sys.exit(anagrammar_main(myargs))
+    sys.exit(globals()[main](myargs))

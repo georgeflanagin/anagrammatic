@@ -49,13 +49,6 @@ Windows is a BYODictionary experience.
 
 ### The tuning parameters
 
-`--no-dups` Use this one if you want to avoid having any of the words in
-your input phrase in the list of anagrams at the end.
-
-`--none-of` Use this to point to a file of words to exclude from the 
-resulting anagrams. It is a better idea to build a special dictionary if
-this is a list of words you plan to use regularly.
-
 `-m`, `--min-len` This tells the anagrammar the shortest word to consider. 
 
 `-d`, `--dictionary` In this project, I have provided two dictionaries already
@@ -79,28 +72,39 @@ output will appear on the screen, which is not always useful if there are a lot
 of anagrams to your phrase. In the example below, I directed the output to `x.out`.
 
 ```bash
-anagram --dictionary mit10000 --min-len 3 "git hub is great" >x.out
+[~]: anagram --help
+usage: anagrammar [-h] -d DICTIONARY [-m MIN_LEN] 
+    [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] 
+    [-t CPU_TIME] 
+    [-v VERBOSE] 
+    [-z] 
+    phrase
 
- --cpu 0 --dictionary mit10000 --min-len 3 --no-dups False --phrase ['git', 'hub', 'is', 'great'] --verbose True
+A brute force anagram finder.
 
-Initial pruning: 185 keys representing 238 words.
+positional arguments:
+  phrase                The phrase. If it contains spaces, it must be in quotes.
 
- D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  |
-   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
----+--------+--------+--------+--------+--------+-------+------+-------+---------|
-  1    12890     2503     0.51     0.02     5588      70    172    127      1674
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DICTIONARY, --dictionary DICTIONARY
+                        Name of the dictionary of words, or a pickle of the dictionary.
+  -m MIN_LEN, --min-len MIN_LEN
+                        Minimum length of any word in the anagram
+  --nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}
+                        Niceness may affect execution time.
+  -t CPU_TIME, --cpu-time CPU_TIME
+                        Set a maximum number of CPU seconds for execution.
+  -v VERBOSE, --verbose VERBOSE
+                        Set the logging level on a scale from 10 to 50.
+  -z, --zap             If set, remove old logfile.
 
-12890 branches in the tree. 2503 dead ends. Max depth 4.
-
-real    0m0.588s
-user    0m0.519s
-sys     0m0.028s
 ```
 
 `x.out` will contain a printed tree in which each path from the
 root node to a leaf is an anagram of the target phrase, `git hub is great`.
 
-Here is what the output file looks like:
+Here is what the output looks like:
 
 ```
 Loading dictionaries.
@@ -160,23 +164,14 @@ I think "GUI tags bit her" is perhaps the best of the lot.
 The assumption in `dictbuilder.py` is that the input is a file of words, white
 space delimited. You type in something like:
 
-`python3 dictbuilder.py /path/to/your/file nameyouwanttouse`
+`python3 dictbuilder.py [-b] -i /path/to/your/file nameyouwanttouse`
 
-The result will be two files, `nameyouwanttouse.forward` and `nameyouwanttouse.reversed`. 
+The result will be a file named `nameyouwanttouse.numbers` that you can 
+reference in your calculation as `nameyouwanttouse`.
 
 ### The PDF documentation looks like it is not finished.
 
 Yes.
-
-### Why did you put those operators in the CountedWord class?
-
-I wrote C++ for 20 years before I switched to Python in 2014 and
-regained my sanity. I experienced a flashback. It's like LSD, but worse.
-
-### Why do you have operators you in the CountedWord class that you don't use?
-
-I know they are there. Time will tell whether they become
-useful. There are loose ends.
 
 ### Why are the dictionaries saved as pickles? That limits their use to Python. 
 

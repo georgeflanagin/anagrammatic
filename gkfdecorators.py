@@ -133,4 +133,4 @@ def show_exceptions_and_frames(func:object) -> None:
         sys.exit(os.EX_DATAERR)
 
     return wrapper
-
+trap = show_exceptions_and_frames
