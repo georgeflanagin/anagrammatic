@@ -150,6 +150,9 @@ compact representation than something like:
 ('fragile', 'gag', 'none')
 ```
 
+## How does it work?
+
+There are no string operations in the code; it is all integer math.
 
 ## Trivia Q & A.
 
@@ -162,10 +165,6 @@ space delimited. You type in something like:
 
 The result will be a file named `nameyouwanttouse.numbers` that you can 
 reference in your calculation as `nameyouwanttouse`.
-
-### The PDF documentation looks like it is not finished.
-
-Yes.
 
 ### Why are the dictionaries saved as pickles? That limits their use to Python. 
 

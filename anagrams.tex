@@ -5,12 +5,14 @@
 \providecommand{\anagrammar}{A\textsc{nagrammar}\xspace}
 
 
-\SetWatermarkText{Review Copy}
+\SetWatermarkText{}
 \SetWatermarkFontSize{5cm}
 \SetWatermarkAngle{58}
-\SetWatermarkColor[gray]{0.97}
+\SetWatermarkColor[gray]{0.99}
 
-\title{An Algorithm to Find Anagrams Using Python}
+\title{An Exaustive Anagram Generator in Python\\
+Using No String Comparisons\\ 
+\Large \vspace{0.7em} (Only Integer Math and Trees)}
 \author{George Flanagin\\University of Richmond\\\lit{gflanagin@richmond.edu}}
 \date{\today}
 
@@ -36,12 +38,11 @@ Python's data structures, and an excuse to develop a few new ones
 expressly for this purpose. This paper defines an efficient algorithm
 for finding all anagrams of a given collection of letters using the
 Python Standard Library for the base code, and the system dictionary,
-or some other list of words,
-as a source for allowed words. 
+(or some other list of words)
+as a source for allowed vocabulary. 
 
 This program is the \anagrammar. Its source code and this documentation
-may be found in \href{https://github.com/georgeflanagin/anagrammatic}
-{https://github.com/georgeflanagin/anagrammatic}
+may be found at \lit{github.com/georgeflanagin/anagrammatic}
 
 \end{abstract}
 
@@ -65,11 +66,11 @@ specialized game of anagrams in which the names of famous people
 are rearranged to form descriptive anagrams: \emph{Alec Guinness}
 becomes \emph{genuine class} in the show's example. Lisa was overwhelmed.
 
-To avoid offending or upsetting readers, I will be using my own
+To avoid offending readers, I will be using my own
 name as the basis for the examples in this paper. Mercifully for
 the contruction of examples, my name consists only of common letters
 in English, and it has a useful proportion of vowels. Let's call
-the starting point the \emph{target phrase}, or just the \emph{target}.
+the starting point the \emph{target phrase}.
 
 To begin, we must have a definition of an anagram. Anagrams
 always appear in pairs.  It makes no sense to say ``\emph{George
@@ -80,7 +81,7 @@ one most suited to Lisa Simpson's game may be
 The technical properties of an anagram are:
 
 \begin{enumerate}
-\item Two phrases are anagrams of each other iff all the letters of
+\item Two phrases are anagrams of each other if and only if all the letters of
 one phrase are present in the other, the same counts for each letter
 present.
 In the case of \emph{George Flanagin}, its
@@ -88,11 +89,12 @@ anagrams must have exactly three \emph{g}-s, two each of \emph{a},
 \emph{e}, and \emph{n}, and one each of \emph{f}, \emph{i}, \emph{l},
 \emph{o}, and \emph{r}.  Fourteen letters.
 
-\item Each phrase in a pair of anagrams must consist of one or more complete words in some dictionary.
-Exactly which dictionary is a point of {\ae}sthetics, as is whether
-one should consider single letter words such as \lit{a} in English
-\emph{and} Spanish, \lit{I} in English, and \lit{y}, \lit{o}, \lit{e}, \lit{u} in Spanish.
-For the purpose of this paper, we will ignore diacritics.
+\item Each phrase in a pair of anagrams must consist of one or more
+complete words in some dictionary.  Exactly which dictionary is a
+point of {\ae}sthetics, as is whether one should consider single
+letter words such as \lit{a} in English \emph{and} Spanish, \lit{I}
+in English, and \lit{y}, \lit{o}, \lit{e}, \lit{u} in Spanish.  For
+the purpose of this paper, we will ignore diacritics.
 
 \item Additional rules are sometimes applied. Common constraints are:
 
@@ -139,905 +141,231 @@ and case insensitive modes.} These are the upper bounds, because
 the figures are not derived by looking for the words that have no
 more of each letter than are found in the target.
 
-For many programmers, the following is a useful abstraction to
-consider how we go about constructing both \emph{an} anagram, and
-\emph{all} anagrams.  Consider the target phrase and bit-string of
-the same length. In Figure~\ref{fig:bitmask}, we see two anagrams,
-\emph{george}+\emph{flanagin} and \emph{long}+\emph{fearing}+\emph{age},
-where each character is ($1$) or is not ($0$) used. For both of the
-anagrams, there is exactly one $1$ in each column, and this tabulation
-is similar to the way that you might search for anagrams with a
-pile of Scrabble\CircleR\xspace letters. The equivalent big endian
-numeric represenations are shown in the right column.
-
-\begin{figure}
-\begin{center}
-\begin{tabular}{lccccccccccccccr}
-\toprule
- &g&e&o&r&g&e&f&l&a&n&a&g&i&n&\\
-\midrule
-george&1&1&1&1&1&1&0&0&0&0&0&0&0&0&16128\\
-flanagin&0&0&0&0&0&0&1&1&1&1&1&1&1&1&255\\
-\midrule
-long&1&0&1&0&0&0&0&1&0&1&0&0&0&0&10320\\
-fearing&0&1&0&1&1&0&1&0&1&0&0&0&1&1&5795\\
-age&0&0&0&0&0&1&0&0&0&0&1&1&0&0&268\\
-\bottomrule
-\end{tabular}
-\caption{The relationship between anagrams and bit masks}
-\label{fig:bitmask}
-\end{center}
-\end{figure}
-
-\begin{figure}
-\begin{tabular}{lp{0.8\textwidth}}
-\toprule
-Symbol&Use and meaning\\
-\midrule
-$w$, $w_n$&word or words from a dictionary.\\
-
-$\mathfrak{S}$, $\mathfrak{T}$&phrases for which are finding anagrams.\\
-
-$\overrightarrow{w}$, $\overrightarrow{\mathfrak{S}}$&representations
-of $w$ and $\mathfrak{S}$ where the letters have been sorted. In
-the programming section, we will be using a standard lexical sort,
-but this is unimportant as long as the same sort-order is used
-throughout. If $w$ is \lit{loaf}, then $\overrightarrow{w}$ is
-\lit{aflo}.\\
-
-$w \leq \mathfrak{S}$&This expression is true iff $w$ can be
-constructed from the letters in $\mathfrak{S}$. For example \lit{foal}
-$\leq$ \lit{georgeflanagin}, and \lit{foal} $\leq$ \lit{loaf}. Note
-that this expression is true or false without regard to whether the
-letters in each term have been sorted.\\
-
-
-$w_1 \oplus w_2$&The result is a collection of all the letters in
-the two words, without preserving the order of the letters in each
-word. The $\oplus$ operator was chosen over $+$ because the bare
-plus sign is used as a string concatentation operator in many
-programming languages, including Python.\\
-
-$w_1 \ominus w_2$&As with the $oplus$ operation above, except that
-we are removing all the letters in $w_2$ from $w_1$. This operation
-is only defined (or meaningful) iff $w_2 \leq w_1$, otherwise in
-the grammar of anagrams (anagrammar?), the statement is like dividing
-by zero.\\
-
-$w_1 \odot w_2$&This expression is true iff $w_1$ and $w_2$ are
-anagrams, so expanding on the above examples, \lit{foal} $\odot$
-\lit{loaf} is true, as is:
-
-$($\lit{long} $\oplus$ \lit{fearing} $\oplus$ \lit{age}$)$ $\odot$
-\lit{georgeflanagin}.\\
-
-$r$, $r_n$&$r$ is for remainder, so when we perform a $\ominus$
-operation, the result will be a value expressed as an $r$, so $r_1
-= \mathfrak{S} \ominus w_1$\\
-
-\D, \Dp, \emph{etc}.&Throughout, we will use \D to represent the
-core dictionary, and \Dp and \Dpp to represent derived dictionaries
-such that \Dpp $\subset$ \Dp $\subset$ \D, in other words, a filter.\\
-
-\bottomrule
-\end{tabular}
-\caption{Symbols used to discuss anagrams}
-\label{fig:anagramsymbols}
-\end{figure}
-
-\begin{samepage}
-\section{Notation}
-
-Anagrams suffer from being relatively easy to define
-in English, yet having no obvious representation in symbols. Given
-that programming languages are a type of symbolic representation,
-we will benefit from having a strong symbolic notation for anagrams,
-their parts, and their construction.
-\end{samepage}
-
-In Figure~\ref{fig:anagramsymbols} we can see the basic notation
-that is invented for the purpose of this discussion. The other
-symbols used, such as assignment, absolute value, and non-anagram
-set operations, are expressed in conventional notation, and will
-mean what you expect them to.
-
-The notation suggests that our Python representation will need all
-of these operators/operations:
-
-\begin{enumerate}
-\item Sorting the letters of a string to make an new string of the 
-same length.
-
-\item The always useful ``partial ordering'' operator, $\leq$, so that
-we can determine if words can be used to make an anagram of the target
-phrase.
-
-\item A method to combine strings beyond concatenation, and a method
-to remove letters from a string.
-
-\item A method to filter the useful words in a dictionary to make
-a new, subset dictionary.
-
-\item A method of bookkeeping to allow us to track the anagrams that
-have been found, and avoid searching the same path twice.
-\end{enumerate}
-
-In fact, these operations lead us directly to a discussion of the 
-algorithm to find all anagrams. 
-
-\newpage
-\section{Algorithm}
+\section{The algorithm}
 
 \quickquote{Homer Jay, how do you keep your hair so rich and full?\\
 Lather, rinse, and repeat. Always repeat.}{Homer Simpson\\D'oh-in'
 in the Wind\\15 November 1998}
 
-Given the small number of qualifying words, and the vast available
-memory combined with the computational abilities of even bottom-self
-computers, finding all anagrams of a phrase could be done by brute
-force. That approach is not very satisfying. Instead, we are searching
-for elegance and comprehension, two nouns that often appear
-side-by-side.
+\subsection{Building a dictionary}
 
-\subsection{Pruning the dictionary}
+The algorithm in \anagrammar is all integer math, providing
+simplicity and speed. 
+Each letter in the alphabet is equated with a prime number, and it makes sense
+to use the first 26 prime numbers, ${ 2, 3, .. 101}$. The order is 
+unimportant, but choosing the order
+
+\verb|eariotnslcudpmhgbfywkvxzjq|
+
+tends to give the smallest numeric values for the products that represent
+the words. The more familiar \verb|etaon...| order of frequency is based
+on normal text in English, but we are concerned with getting our
+text from a dictionary where each word occurs only once, and the above
+sequence represents the frequency of letters of the words in a dictionary.
+Raw experimentation suggests that the composite numbers representing
+words have a reduced bit length of 15 to 20\%, which is substantial.
+
+\begin{verbatim}
+primes26 = (2, 3, 5, 7, 11,
+    13, 17, 19, 23, 29,
+    31, 37, 41, 43, 47,
+    53, 59, 61, 67, 71,
+    73, 79, 83, 89, 97,
+    101 )
+primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
+
+def word_value(word:str) -> int:
+    return math.prod(primes[_] for _ in word)
+\end{verbatim}
+
+Note that the fundamental theorem of arithmetic ensures that each
+word is represented by a unique numeric value. However, many different
+words may map to the \emph{same} value, for example, \lit{care}, \lit{acre},
+and \lit{race} contain the same letters. If one of them is a part of
+an anagram, then all of the others are also a part of that anagram.
+
+A dictionary consists of a mapping, or in Python's language, a \lit{dict}, in
+which the keys are the integers and the values are a set of words.
+
+One additional convenience of this method is that we are only concerned
+with the integer keys --- there is no need to examine the words until
+the end of the process. This cuts down considerably on the memory
+requirement for the running program.
+
+
+\subsection{Select candidates from the dictionary}
 
 Our first step is the elimination of all the words that are made
 from incompatible collections of letters. In our grammar, we seek
-to construct
+to construct a collection of values that divide the value of the 
+target phrase. This is more easily represented in Python than in 
+conventional set notation from mathematics. 
 
-\begin{equation}
-\label{eq:deriveddictionaries}
-\mathfrak{D}' := \{w:w \leq \mathfrak{S} \wedge w \in \mathfrak{D}\}
-\end{equation}
+In fact, it is so simple that there is no real benefit to making
+it a function except for the clarity of notation. The \lit{filter}
+argument is the phrase (or sub-phrase \ldots this is a recursive
+algorithm) we are searching with the \lit{candidates}, a list
+of potential factors.
 
-This is often a small collection of words, and we know that 
+\begin{verbatim}
+def prune_dict(filter:int, candidates:tuple) -> tuple:
+    return tuple(k for k in candidates if not filter % k)
+\end{verbatim}
 
-\begin{equation}
-\label{eq:wordlength}
-\forall w: |w| \leq |\mathfrak{S}|
-\end{equation}
-
+Given that this is a common operation in the \anagrammar, it is 
+worth some future experimentation to see if it can be squeezed down
+into fewer instructions.
 
 \subsection{Trying the words}
 
-It makes sense to start with the longest words in \Dp, a fact that
-will guide us when we start the programming in the next section.
-Each word in the dictionary will be subtracted from the target
-phrase, and will leave a complementary set of remainders.
+It is useful to think of a target phrase and all its anagrams as an
+n-ary tree,\footnote{n-ary trees are not a native citizen of Python,
+and the discussion of the implementation of trees is discussed in 
+Section~\ref{sec:trees}.} in which the root is the target phrase, and each path 
+from the root to a leaf is an anagram. Using our chosen phrase,
+\lit{georgeflanagin}, we can think of the relationship represented
+like this:
 
-\begin{equation}
-\label{eq:remainders}
-\mathfrak{R} = \{\forall w : \mathfrak{S} \ominus w \}
-\end{equation}
+\lit{root $\longrightarrow$ long $\longrightarrow$ fearing $\longrightarrow$ age}
 
-Equation~\ref{eq:remainders} is well suited to the list comprehension
-construct in Python.
+\lit{~~~\textbackslash $\longrightarrow$ nine $\longrightarrow$ ear $\longrightarrow$ golf $\longrightarrow$ gag}
 
-At this point, we should take note of the one-to-many relationship
-between \aw and the dictionary words \w. Words that are anagrams
-of each other share the same sorted representation of their letters,
-so in a key-value look up table, if the keys are of the form \aw,
-then they must support a list (tuple) of one or more \w-s as the
-values.
+The obvious first step is to try all the words against the original
+phrase and see what is left after the division. In our n-ary tree,
+there will be at most 2777 branches from the root because there
+are 2777 factors. Ugly? Yes, but we only need to build it rather than
+plant it in the garden and admire it, and we will do our best to prune
+as we go.
 
-While programming this data structure takes us into the shallow end
-of the pool of rolling our own data structures later on, it does
-mean that we do not need to try any of the words in the tuple to
-make an anagram, we need only concern ourselves with the sorted
-key. Consider this specific case: $acer \longrightarrow \{acre,
-race, care\}$
+\subsection{Recursion}
 
-The sorted representation, $acer$, is meaningless. But we can freely
-substitute any of the three English words in an anagram that contains
-one of them. Whether the collection of real words associated with
-a key has one or more than one element, we only need to bother with the key.
-Thus, Equation~\ref{eq:remainders} becomes the more manageable
-expression seen here:
+Finding anagrams is a recursive process: if a word is a component of an anagram
+for a given phrase,
+then all of the word's anagrams are also elements of the phrase's set of
+anagrams. For example, we can break apart \lit{fearing} into \lit{near-fig},
+and substitute to have \lit{long-near-fig-age}.
 
-\begin{equation}
-\mathfrak{R} = \{\forall \overrightarrow{w} : \mathfrak{S} \ominus \overrightarrow{w} \}
-\end{equation}
+Let's number the first connection to the root of the tree as edge zero, and
+let's sort the factors that represent the words in ascending order. A key 
+point is that the set of factors is not merely \emph{well ordered}, but 
+has \emph{strict total ordering}: the factors are distinct, and they are all
+comparable with $<$. 
 
-We cannot neglect the fact that $\forall w: w \odot w$, or in plain English,
-every word is an anagram of itself, so we must check to see whether each
-remainder is a key in the dictionary and a complement of some other
-key in the same dictionary. So before any recursive decent begins, we 
-must check for the ``two word'' solution.\footnote{In fact, if the 
-original phrase is shorter than the longest words in the dictionary,
-we must include the ``one word'' solution. For example, if the target
-phrase is \emph{gimp count}, there is a one word solution to be found: computing.}
+In our programming, we can refer to the edge numbering as the \emph{depth}
+because computer science trees are usually construed to grow from a root
+in the sky toward the ground. Edges that branch from the initial test of
+all the factors will be numbered $1$, and so on.
 
-\subsection{Recursion and bookkeeping}
+In our representation, there is some least factor that may or may
+not correspond with the ``shortest word'' we are considering.  Our
+representation has moved beyond the ambiguities of having several
+three letter words and a reliance on a lexicographic ordering to
+differentiate between them. We no longer need to test twice, once
+for length and once for alpha order.
 
-At this point, we have the algorithm reasonably well in mind, if not
-in hand. We take our collection of remainders and derive \Dpp from \Dp,
-and reapply the testing of all the keys in \Dpp to $\mathfrak{R}$.
-The dictionary rapidly becomes small. 
+In Python, we can represent the sorted factors with this line of code,
+where \lit{phrase\_v} is the value associated with the term we are
+trying to decompose into an anagram of dictionary words.
 
-Additionally, we can exploit the fact that we are keeping track of
-the \aw terms as we go to ensure that we do not test them more than
-once, and this is where bookkeeping enters the picture. It seems
-fairly natural to think of this as a forest of $n$-ary trees, where
-the root node of each is a \aw term. For \aw terms that offer no
-completion (\ie dead ends) we can saw these to the ground, and
-experience has shown that dead ends will constitute the majority
-of the \aw terms we try.
+\begin{verbatim}
+factors = tuple(sorted(prune_dict(phrase_v, factors)))
+\end{verbatim}
+We can test the factors in a completely unoptimized for loop safely using 
+integer division because the factors are all known to divide \lit{phrase\_v}
+evenly --- that's what it means to be a factor.
+\begin{verbatim}
+for factor in factors:
+    residual = phrase_v // factor
+\end{verbatim}
 
-\newpage
-\section{Programming}
+The idea of recursion is simple enough to present as repeating the above
+operation with the \lit{residual} and its factors that will be a proper
+subset of the factors of \lit{phrase\_v}. Before we can recurse, we must
+keep track of where we are in the tree.
 
-This paper is being written in 2021, so the programming is 
-done using Python~3. At this time, I am using Python~3.8, although
-I do not think any of the features that first appear in Python~3.8
-(such as the ``walrus operator,'' \lit{:=} ) are used in the code
-that appears on GitHub.
+\subsection{Bookkeeping}
 
-This is a paper about anagrams, Python's data structures, and rolling
-a few of our own data structures. It is not about PEP-8 style, sane
-exception handling, type hints, nor how to organize code modules
-in the project. With that warning, let's get started.
+\emph{Lather, rinse, repeat} is a risky process in programming because it requires
+us to ensure we do not do the recursive operation infinitely, and there are many
+things that will trip us up along the way. Let's use the name \lit{find\_words} for 
+the recursive function. For each call to \lit{find\_words} we need to know the
+level of recursion; this way we will add edges to the correct level of the
+tree. This gives us a function signature of 
 
-\subsection{Style of the dictionary}
+\begin{verbatim}
+def find_words(phrase_v:int,
+    factors:tuple,
+    depth:int=0) -> SloppyTree:
+\end{verbatim}
 
-The familiar \verb|/usr/share/dict/linux.words| file is based on the
-Webster's Second International Dictionary. It has a number
-of entries we do not need as its primary use is in spell-check. 
-There are words with punctuation, and
-acronyms that are all caps. Additionally, it has $1420$ words of three
-letters, $25199$ words that start with a capital letter, and with 10230
-words of five letters, it far exceeds Knuth's well established list
-of $5757$ five letter words that is a corpus in the Stanford University
-Graph Base.\footnote{\lit{https://www-cs-faculty.stanford.edu/$\sim$knuth/sgb.html}
-Both the page and Knuth's book are well worth exploring.}
+\section{Trees in Python}
+\label{sec:trees}
 
-If you turn your attention to \lit{dictbuilder.py} you can get a
-feel for the approach taken to support anagrams. I have chosen to
-eliminate a large number of the dictionary entries by reading it
-in a way that rids us of duplicates, capital letters, and punctuation
-all at once, and I have chosen to supply an explicit list of $27$
-two letter words rather than the $160$ in the dictionary. Feel
-free to adjust the code to suit your use.
+When it comes to native data structures, Python has quite a few to choose
+from, and all are useful. Along with \lit{list}, \lit{dict}, and \lit{tuple},
+there are the many extended data structures in the \lit{collections} module. 
+Nevertheless, any kind of tree is absent, and that may well be because there are so many 
+different kinds of trees, enough that Donald E. Knuth has been giving an
+annual lecture on new trees for the entire millennium, minus the Covid years of
+2020 and 2021.
 
-\lit{dictbuilder} creates two dictionaries.
+\anagrammar uses an n-ary tree implemented as a \lit{class} derived from \lit{dict}.
+Unlike trees that require building nodes and linking them to other nodes, this tree
+builds nodes automatically when they are first mentioned, and we have given
+it the name \lit{Sloppy\-Tree}\texttrademark. \lit{Ugly\-Tree} might have been a 
+better name, but the chosen name allows us to have a Python module with the
+name \lit{slop.py}.
 
-\begin{enumerate}
-\item a \lit{dict} (dictionary) whose keys are the words we have
-in some way read from the dictionary file, and whose values are the
-sorted strings of the letters in the word.
-
-$$w \longrightarrow \overrightarrow{w}$$
-
-Rather arbitrarily, this is termed the \emph{forward dictionary},
-and in the code dictionaries of this type are usually referred
-to by the sybolic name \verb|f_dict|.
-
-\item a \lit{dict} whose keys are the sorted strings from above,
-and whose values are a set$\slash$tuple of all the words from the
-dictionary that can be made from this string of letters.
-
-$$\overrightarrow{w} \longrightarrow (w_0, w_1, w_2, .. w_n)$$
-
-This is termed the \emph{reverse dictionary}, and it is associated
-with the symbolic name \verb|r_dict|. \inote{The container is represented
-as a \lit{tuple}, but it is also a \lit{set} because each element
-occurs exactly once.}
-
-\end{enumerate}
-
-From the standpoint of use in dictionaries, it is required that
-both the keys and values be hashable, because the values become the
-keys in the reversed dictionary. Consequently, we cannot use a
-sorted \lit{list} of letters; it must be a \lit{str} or a \lit{tuple}.
-Ordinary strings are the most convenient, particularly when 
-printing the results.
-
-
-\subsection{Going from words to sorted strings}
-
-In the Python Standard Library there are wonders, and one of the
-ones we will be using is \lit{collections}, and within it we will
-start with the handy \lit{Counter} class. As the documentation
-states, \lit{Counter} is a type of \lit{dict}.\footnote{The
-documentation referred to here and throughout this paper is the
-collection of web pages at \lit{docs.python.org}.  It is searchable,
-well written, and accurate. You should not only use it, you should
-prefer it.}
-
-Referring to Figure~\ref{fig:anagramsymbols}, we can see that 
+\lit{SloppyTree} is directly derived from \lit{dict}, and the
+automatic node creation is achieved by having the \verb|__missing__|
+function create a key whose value is an empty \lit{SloppyTree}.
+Because subscript notation of deeply nested \lit{dict}s can become
+tedious,
 
 \begin{quote}
-\small
 \begin{verbatim}
->>> S = 'george flanagin'
->>> sorted_S = str(sorted([ _ for _ in S if _ != ' ' ]))
->>> counted_S = collections.Counter(S)
->>> counted_S
-Counter({'g': 3, 'e': 2, 'a': 2, 'n': 2, 'o': 1, 'r': 1, 
-    'f': 1, 'l': 1, 'i': 1})
+t['key1']['key2']['key3'] = 6
 \end{verbatim}
 \end{quote}
 
-\lit{Counter} defines a number of operations that are very close
-to ideal for our use in abstracted algebra to deal with anagrams.
-It is good that we get a head start, but we do need to put in
-a bit of work to customize the \lit{Counter} for our purposes.  The
-most direct route is the exploitation of Python's underlying object
-model.
-
-\lit{Counter} gives us a useful iterator named \lit{elements()} that
-we can pass directly to the \lit{sorted} builtin.  
+the \verb|__getattr__| and \verb|__setattr__| are added so that the
+above line may be written as:
 
 \begin{quote}
-\small
 \begin{verbatim}
->>> sorted(counted_S.elements())
-['a', 'a', 'e', 'e', 'f', 'g', 'g', 'g', 'i', 'l', 'n', 'n', 'o', 'r']
+t.key1.key2.key3 = 6
 \end{verbatim}
 \end{quote}
 
-As a subclass of \lit{dict}, \lit{Counter} has specialized the
-\lit{update()} method using the plus (\lit{+}) operator, and it will do
-exactly what we require to implement the method in our notation
-written as $\oplus$. Unfortunately for our work, the \lit{subtract()}
-function allows negative quantities,\footnote{The subclassed
-\lit{update()} also allows for negative quantities, but when we are
-adding objects whose count is greater than zero there is no risk
-of getting a negative result.} which means we will need to modify
-it slightly in our subclass for it to be an implementation of
-$\ominus$.
-
-The code in Figure~\ref{fig:countermods} (with most comments removed for bevity)
-accomplishes the required changes in a class named \lit{CountedWord}:
-
-\begin{enumerate}
-\item As a subclass of \lit{Counter}, we get to use the builtin
-methods.
-
-\item In keeping with the spirit of the \lit{Counter} implementation,
-we have superseded the meanings in the original class, so that \lit{a-b} does
-not modify \lit{a}, and \lit{a -= b} is provided for the cases where that is
-desired.
-
-\item We have provided a \verb|__str__()| operator that returns the
-sorted string of the characters in the counter. This is generally the
-most useful case when we want to use a \lit{CountedWord} as 
-a key. 
-
-\end{enumerate}
-
-\begin{figure}
-\begin{framed}
-\begin{quote}
-\tiny
-\begin{verbatim}
-@total_ordering
-class CountedWord(Counter):
-    """
-    Each word/phrase corresponds to one CountedWord representation of it.
-    For example, CountedWord('georgeflanagin') is 'aaeefgggilnnor'. However,
-    the same CountedWord may be a representation of many different words.
-
-    The operators allow us to write code that is somewhat algebraic.
-    """
-    def __init__(self, s:str):
-        """
-        Add one class member, the as_str, which is a the word
-        represented as a
-        """
-        Counter.__init__(self, s)
-        self.as_str = "".join(sorted(self.elements()))
-
-
-    def __eq__(self, other:Union[CountedWord,str]) -> bool:
-        """
-        if CountedWord(w1) == CountedWord(w2), then w1 and w2 are
-        anagrams of each other.  For example CountedWord('loaf') ==
-        CountedWord('foal').
-        """
-        if isinstance(other, str): other = CountedWord(other)
-        return self.as_str == other.as_str
-
-
-    def __le__(self, other:Union[CountedWord,str]) -> bool:
-        """
-        if shred1 <= shred2, then shred1 is in shred2
-        """
-        if isinstance(other, str): other=Counter(other)
-
-        # Note that there are no zero-counts in the Counter's
-        # dict. So all the v-s from self will be > 0.
-        return all(other.get(c, 0) >= v for c, v in self.items())
-
-
-    def __sub__(self, other:CountedWord) -> CountedWord:
-        if isinstance(other, (str, Counter)): other = CountedWord(other)
-        if other <= self:
-            x = copy.copy(self)
-            x.subtract(other)
-            x.__clean()
-            x.as_str = "".join(sorted(x.elements()))
-            return x
-        else:
-            raise ValueError('RHS is not <= LHS')
-
-
-    def __add__(self, other:CountedWord) -> CountedWord:
-        if isinstance(other, (str, Counter)): other = CountedWord(other)
-        x = copy.copy(self)
-        x.update(other)
-        x.as_str = "".join(sorted(self.elements()))
-        return x
-
-
-    def __clean(self) -> None:
-        zeros = [ k for k in self if self[k] == 0 ]
-        for k in zeros:
-            self.pop(k)
-
-
-    def __str__(self) -> str:
-        """
-        The contents, sorted, and as a string.
-        """
-        return self.as_str
-\end{verbatim}
-\end{quote}
-\end{framed}
-\normalsize
-\caption{Example code for derived \lit{Counter} class}
-\label{fig:countermods}
-\end{figure}
-
-\subsection{N-ary trees in Python}
-
-GitHub is filled with trees for Python, and the reason is very
-likely that Python (as of 3.8) has no native tree in its standard
-library.  For anagrams, we need nothing complex like self-balancing
-red-black trees, nor even B-trees. We need a flexible N-ary tree.
-
-It is fairly easy to construct one starting from the idea behind
-the \lit{defaultdict} from the \lit{collections} module, although
-it does not quite work for us as delivered. We need to support all
-the following abstractions:
-
-\begin{enumerate}
-\item From graph theory fundamentals, we know that a tree is a data
-structure in which there is exactly one path from any node to another
-node. This implies that a linear sequence is also a tree, although
-not a very ornamental example.
-
-\item An important property of a tree can be derived from the
-definition: if we cut a tree into two pieces by removing the unique
-connection between any two nodes, the resulting two data structures
-are each trees. To look at it from the opposite direction (the
-direction more useful for a recursive search like finding anagrams),
-we can take any two trees and perform a grafting operation at a
-node to join them into a single tree.
-
-\end{enumerate}
-
-The needed operations in Python can be accomplished with the
-\lit{dict} because \lit{dict}s may contain \lit{dict}s as members.
-From a programming standpoint, this operation needs to be as intuitive
-as possible if we are to avoid common programming mistakes.
-
-The single data structure for trees in this program is known as 
-the \lit{SloppyTree}, a name that speaks for itself. It is directly
-derived from \lit{dict}, with the following behaviors modified:
-
-\begin{itemize}
-\item \lit{SloppyTree} provides a \verb|__missing__| function that
-creates a new key with the default value of an empty \lit{SloppyTree} in
-the case where the key is not found. The native \lit{dict} function
-raises a \lit{KeyError} when elements are not found; instead we want to
-automatically add them. This behavior is also found in \lit{defaultdict}.
-
-\item Consistent with \lit{class}-like behavior, \lit{SloppyTree} provides
-the trio of member access operations: \verb|__getattr__|, \verb|__setattr__|,
-and \verb|__delattr__|. These operations are not required for the 
-case of anagrams, but \lit{SloppyTree} has other uses.
-
-\item Consistent with our desire to write as little code as possible, 
-\lit{SloppyTree} has a \verb|__str__| operator that invokes the \lit{pprint.pformat}
-function to write out the contents in a way suitable for review.
-
-\end{itemize}
-
-As much as we benefit from the \lit{CountedWord} class, it is unfortunate
-that they are not hashable, and therefore cannot be keys for the \lit{SloppyTree}
-nor any other \lit{dict}-derived type. This is why the \verb|CountedWord.__str__| 
-operator returns the extra class member \verb|as_str| --- we really do not want
-to be constantly rebuilding them. 
-
-\section{Using the Anagrammar}
-\subsection{Command line parameters}
-
-Launching the program produces a familiar style of command line usage 
-message:
-
-\small
-\begin{verbatim}
-usage: anagrammar [--help] [--cpu CPU] --dictionary DICTIONARY [--min-len MIN_LEN]
-                  [--no-dups] [--none-of NONE_OF] [--order {0,1,2}] [-v {0,1,2,3}]
-                  phrase [phrase ...]
-anagrammar: error: the following arguments are required: phrase
-\end{verbatim}
-\normalsize
-
-\begin{figure}
-\small
-\begin{verbatim}
-positional arguments:
-  phrase                The phrase. If it contains spaces, it must be in quotes.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --cpu CPU             Set a maximum number of CPU seconds for execution.
-  --dictionary DICTIONARY
-                        Name of the dictionary of words, or a pickle of the
-                        dictionary.
-  --min-len MIN_LEN     Minimum length of any word in the anagram
-  --no-dups             Disallow words that were in the original phrase.
-  --none-of NONE_OF     Exclude all words in the given filename.
-  --order {0,1,2}       Key ordering: 0: random, 1:shortest first, 2:longest first
-  -v {0,1,2,3}, --verbose {0,1,2,3}
-                        Be chatty about what is taking place -- on a scale of 0 to 3
-\end{verbatim}
-\normalsize
-\caption{Anagrammar help text}
-\label{fig:helptext}
-\end{figure}
-
-A polite inquiry with \lit{--help} provides slightly more information as shown
-in Figure~\ref{fig:helptext}. Unfortunately, it is not possible to provide
-all the information needed in just a line or two. Let's examine the options
-in alphabetic order.
-
-\begin{description}
-\item[\lit{--cpu}] This option is primarily useful to prevent runaway searches
-when the phrase being anagrammed is capable of making a large number of 
-anagrams. Given that the algorithm is tail-recursive and single-threaded,
-the processor time correlates well with the number of branches in the
-tree.
-
-\item[\lit{--dictionary}] Half the fun in this program is changing out
-the dictionary of allowed words, and the other half is changing the
-original phrase. Only the non-suffix part of the filename needs to
-be given, and the Anagrammar will accept the name you give and assume
-that the pair of dictionary files is named \lit{.forward} and \lit{.reversed}
- 
-\item[\lit{--min-len}] This parameter is the most significant one in
-changing the results and altering the execution time. The default
-value is \lit{2}, which is too low for the most interesting results. 
-
-Note what happens when you allow a value of \lit{1} with the input
-phrase ``george flanagin.'' Using the two one-letter words of English,
-this amounts to running the algorithm twice with \lit{a} and \lit{i} 
-extracted in turn on the remaining 13 letters. 
-
-Note that there are problems at the other end, as well. For example,
-suppose the input phrase has 18 letters, and the words must be six letters
-long. With these initial conditions, the only possible combinations are three six-letter words
-or two words where the pairs are \lit{(9, 9)}, \lit{(8, 10)}, \lit{(7, 11)}, and \lit{(6, 12)} letters.
-
-\item[\lit{--nice}] Niceness is available for user programs, and the
-higher the value, the more willing the OS will be to execute another
-program. On the other hand, it may give the program a longer quantum and
-fewer interruptions when it is running. 
-
-\item[\lit{--no-dups}] When this parameter is present and the input
-phrase is written as more than one word, \ie \emph{george flanagin} 
-rather than \emph{georgeflanagin}, none of the words are allowed 
-in the resulting solution set of anagrams.
-
-\item[\lit{--none-of}] The value of this parameter is a string that
-is interpreted as a filename containing white-space delimited words to
-be removed from consideration. The methods for removing entries from
-a pair of \lit{dict}s with thousands of entries is a kludge, and this 
-option does not exist as an option to creating a custom dictionary.
-See Section~\ref{sec:dictbuilder} for information about constructing
-custom dictionaries.
-
-\item[\lit{--order}] This parameter exists primarily to do demonstrations
-of the importance of the search order for anagrams. The options are:
-
-\begin{description}
-\item[0] random order, created by trying the possible keys in 
-an order provided by the Python builtin, \lit{random.sample}. The
-results are not repeatable, nor can the sample method be tuned.
-
-\item[1] shortest keys first. This is the ``correct''
-operation.
-
-\item[2] longest keys first. This method produces only a subset of
-the possible anagrams, but it is quite useful to illustrate the
-importance of search order.
-
-\end{description}
-
-\item[\lit{--verbose}] At this time, only \lit{--verbose 3} has a profound
-effect on output. The high setting of verbosity creates an effective
-flow trace showing the keys being tried and exhausted, and the
-recursions noted.
-
-\end{description}
-
-\subsection{Example outputs}
-
-\subsubsection{Statistics}
-
-As mentioned in Section~\ref{sec:bigpicture}, the number of anagrams
-can become large, quickly, and for a variety of reasons -- the
-dictionary used, the letters making up the phrase. Therefore, the
-example that is used in this paper is a little contrived.
-
-First, let's take a look at the standard output that is created
-while the program is running in its standard mode as shown
-in Figure~\ref{fig:stdoutput}.  Note that the
-results will vary widely across operating systems and processors.
-
-\begin{figure}
-\small
-\begin{verbatim}
-Initial pruning: 880 keys representing 1054 words.
-
-D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  |
-  | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
----+--------+--------+--------+--------+--------+-------+------+-------+---------|
-  1    26017     8186     2.18     0.07    32829       0      7   1269      8640
-
-26017 branches in the tree. 8186 dead ends. Max depth 3.
-\end{verbatim}
-\normalsize
-\caption{Standard program output.}
-\label{fig:stdoutput}
-\end{figure}
-
-On the line that precedes the table, we can read the size of the vocabulary
-that has qualified for use in the search. In this example, there are 880 keys
-(sorted strings) that represent 1054 words taken from the dictionary. 
-The output is updated every 100 branch evaluations as the program runs.
-
-The left-most column shows the current recursion depth, and it is more for
-evidence of operation than any practical use. It will always be \lit{1} when
-the program terminates. The other parameters are more significant.
-
-\begin{description}
-\item[branch evals] The count of the number of attempts to add a branch
-to the tree.
-
-\item[dead ends] The number of failed branches during tree construction.
-
-\item[user secs] The number of seconds the program has been executing.
-This value added to the \lit{sys secs} value gives the ``clock time''
-of operation.
-
-\item[sys secs] The number of seconds the system has been performing
-tasks on behalf of the program.
-
-\item[page faults] The number of times the program has had to request 
-a page from memory. Typically, this number gains most of its value when the
-dictionaries are read into memory, and it grows only slightly as the
-tree of results grows.
-
-\item[I/O sig] The number of times the program has stopped to perform
-I/O with storage (disc), as opposed to memory.
-
-\item[WAIT sig] The number of times the program has been told to wait
-by the operating system.
-
-\item[USEDQ] All operating systems allow a program to run for a specific
-amount of time, known as the \emph{quantum}, at which point the scheduler
-interrupts to be sure there is nothing more important for the current 
-core to do. The number of interruptions is highly dependent on the 
-CPU and the OS, but the ratio of \lit{USEDQ / (WAIT + I/O)} is a 
-clear indication of the degree to which the task is ``CPU-bound.''
-
-\item[Tails] The final remainder is called a \emph{tail}, a suitable
-name because the algorithm is \emph{tail recursive}. At the end
-of each failure to find an anagram, the terminating event is a 
-tail that makes no word in the dictionary, or a tail that has
-been discovered to not be decomposable into two or more words
-in the dictionary. To avoid traversing the same tails more than
-once, each new tail is added to a Python \lit{set}. The number
-shown in this column is the final total.
-
-\end{description}
-
-\subsubsection{Anagrams of a sample phrase}
-
-Using \emph{sample phrase} as the sample phrase, and setting the minimum
-length to 4, we get interesting results when using the full Linux 
-spelling dictionary. The \anagrammar's normal output is shown in Figure~\ref{fig:samplephrase}.
-The less interesting, but more easily understood collection of anagrams from the MIT 10000 most
-common words is shown in Figure~\ref{fig:smallsample}.
-
-
-\begin{figure}
-\footnotesize
-\begin{verbatim}
-anagram --min-len 4 --dict mit10000 "sample phrase"
-
-['sample', 'phrase']
-Initial pruning: 86 keys representing 98 words.
-
- D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  |
-   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
----+--------+--------+--------+--------+--------+-------+------+-------+---------|
-  1      119       95     0.11     0.03     4935       0      6    103       102
-
-119 branches in the tree. 95 dead ends. Max depth 3.
-{   'maple': 'phrases',
-    'peas': {('arms', 'mars'): 'help'},
-    'phrase': 'sample',
-    'sphere': 'plasma',
-    ('males', 'salem', 'meals'): 'perhaps',
-    ('phases', 'shapes'): 'palmer'}
-
-\end{verbatim}
-\normalsize
-\caption{Anagrams of \emph{sample phrase} using MIT 10000 word dictionary}
-\label{fig:smallsample}
-\end{figure}
-
-The tree is printed so that the anagrams may be located by looking at the 
-lines of the report. Looking at Figure~\ref{fig:smallsample}, we see that 
-\emph{maple} and \emph{phrases} is an easy anagram, the kind that Lisa Simpson
-posited for ``Jeremy Irons'' \ldots ``Jeremy's Iron,'' missing ``minor jersey.''
-
-The next line features a three word anagram, \emph{peas}, \emph{help}, and 
-either of the self-anagrams, \emph{arms} and \emph{mars}. Since we did not
-exclude the original terms, they appear in the third line. Contrast this 
-with the penultimate anagram in the list constructed from the larger dictionary.
-It shows that \emph{phrase} has two self-anagrams in the dictionary, 
-\emph{shaper} and \emph{seraph}.
-
-
-\begin{figure}
-\footnotesize
-\begin{verbatim}
-anagram --min-len 4 --dict words "sample phrase"
-
-['sample', 'phrase']
-Initial pruning: 262 keys representing 448 words.
-
- D | branch |  dead  |  user  |  sys   |  page  |  I/O  | WAIT | USEDQ |  Tails  |
-   | evals  |  ends  |  secs  |  secs  | faults |  sig  |  sig |       |         |
----+--------+--------+--------+--------+--------+-------+------+-------+---------|
-  1      344      267     1.21     0.07    32558       0      3    363       301
-
-344 branches in the tree. 267 dead ends. Max depth 3.
-{   'alpha': 'empress',
-    'apple': 'smasher',
-    'harem': ('sapples', 'papless'),
-    'helms': 'sappare',
-    'papess': 'harmel',
-    'peeps': 'marshal',
-    'phases': ('palmer', 'lamper', 'relamp'),
-    'remap': 'hapless',
-    'slash': 'empaper',
-    'spasm': 'preheal',
-    'sperma': 'alephs',
-    'splash': 'ampere',
-    ('hames', 'shame'): 'slapper',
-    ('haps', 'hasp', 'pash'): 'resample',
-    ('hassel', 'hassle'): ('pampre', 'mapper', 'pamper'),
-    ('heaps', 'phase', 'shape'): ('lampers', 'sampler'),
-    ('lames', 'males', 'meals'): ('prehaps', 'perhaps'),
-    ('lamps', 'plasm', 'palms', 'psalm'): ('reshape', 'rephase'),
-    ('lams', 'slam', 'alms'): 'preshape',
-    ('peas', 'spae', 'apse', 'apes', 'pase'): {   'harp': ('mels', 'elms'),
-                                                  'hemp': 'lars',
-                                                  'lash': 'perm',
-                                                  'marl': 'pehs',
-                                                  'reps': 'halm',
-                                                  ('haps', 'hasp', 'pash'): 'merl',
-                                                  ('mars', 'arms', 'rams'): 'help',
-                                                  ('palm', 'lamp'): ('hers', 'resh'),
-                                                  ('raps', 'pars', 'spar', 'rasp'): 'helm',
-                                                  ('slap', 'pals', 'alps', 'salp', 'laps'): 
-                                                        'herm',
-                                                  ('spam', 'pams', 'samp', 'maps', 'amps'): 
-                                                        ('herl', 'lehr')},
-    ('plasma', 'lampas'): ('sphere', 'herpes'),
-    ('seraph', 'phrase', 'shaper'): 'sample',
-    ('sperm', 'perms'): 'phaseal'}
-\end{verbatim}
-\normalsize
-\caption{Anagrams of \emph{sample phrase}}
-\label{fig:samplephrase}
-\end{figure}
-
-\section{Building dictionaries}
-
-The source code contains a single file named \lit{dictbuilder.py}. It is both
-a standalone program and an \lit{import} for this project because it contains
-the function \lit{dictloader}. The dictionaries it builds are stored as 
-Python pickles, and it offers useful command line switches to control
-the way the dictionaries are constructed.
-
-\subsection{Basic operations}
-
-\begin{figure}
-\small
-\begin{verbatim}
-Usage: dictbuilder [-h] [-d] -i INPUT [INPUT ...] [-n PROPERNOUNS] outfile
-
-A program to maintain dictionaries used in anagrammar.
-
-positional arguments:
-  outfile               Name of the dictionary to be written (minus the suffixes).
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -b, --bare            Use only the words in the input dictionary rather than the 
-                        built-in 2, 3, 4, and 5 letter words.
-  -i INPUT [INPUT ...], --input INPUT [INPUT ...]
-                        The name[s] of the input dictionaries.
-  -n PROPERNOUNS, --propernouns PROPERNOUNS
-                        If used, exclude the words found in the file (presumed to 
-                        be proper nouns)
-\end{verbatim}
-\normalsize
-\caption{Command line options for the dictbuilder}
-\label{fig:dictbuilderoptions}
-\end{figure}
-
-Running the \lit{dictbuilder} is much like running the \anagrammar. The help
-text is shown in Figure~\ref{fig:dictbuilderoptions}. The options offer
-considerable flexibility for making custom dictionaries. \inote{When a 
-dictionary is loaded by the \anagrammar, the entire file is read. There is 
-no option to inspect the dictionary while it is being read.} 
-
-\begin{description}
-\item[\lit{--bare}] Normal operation is to use the lists of short words that
-are a part of the project. The 1, 2, and 3-letter words are in the source
-code itself, represented as \lit{frozenset}s of \lit{str}. The 4-letter
-words are in the file \lit{four.letter.words} and the 5-letter words 
-are those of Donald Knuth, stored in the file \lit{knuths.5757.five.letter.words.txt}.
-These may not be the ones you want to use, primarily because Knuth's list of
-words is unusually large, exceeding even the Webster's International dictionary.
-
-\item[\lit{--input}] This argument can be repeated, so that you may
-build a dictionary from several, merged sources. Normal operation is effectively
-the following:
+In fact, there is no need to set a value to create the node. If you
+are unsure of the value at the time the node is created, an
+\emph{expression} like
 
 \begin{quote}
-\small
-\lit{-i four.letter.words -i knuths.5757.five.letter.words -i yourownfile}
+\begin{verbatim}
+t.key1.key2.key3
+\end{verbatim}
 \end{quote}
 
-\item[\lit{--propernouns}] If this option is not present, all the input
-dictionaries are used \emph{as is}. If it is present, it removes all the 
-words that appear in the dictionaries with an initial capital letter, and
-then removes all the words in the filename associated with the option, 
-regardless of whether they are capitalized.
+is really a \emph{statement} (!) that creates the cascade of needed
+\lit{dict}s and their keys. It is equivalent to:
 
-\item[outfile] The name should be supplied without suffixes, because the
-construction process creates the two dictionaries as separate files,
-providing its own suffixes, \lit{.forward} and \lit{.reversed}.
+\begin{quote}
+\begin{verbatim}
+t = SloppyTree()
+t['key1'] = SloppyTree()
+t['key1']['key2'] = SloppyTree()
+t['key1']['key2']['key3'] = SloppyTree()
+\end{verbatim}
+\end{quote}
 
-\end{description}
-
-\subsection{Methods}
-
-The building of the dictionary takes place with the steps in the
-logical order to avoid conflicts. The so-called \emph{forward} dictionary
-is built first, with the words read from the various sources as the
-keys, and the letters that make up each word, sorted in the standard
-lexicographic way, as the values.
-
-The construction of the reversed dictionary requires more finesse.
-The construction iterates over the values of the forward dictionary to
-use as keys, and the value is a \lit{defaultdict} of \lit{list}, to which the 
-corresponding words are appended. Once constructed, neither dictionary
-is mutable, so the values in the reversed dictionary are transformed into
-\lit{tuple}s before the pickling process.
-
-Pickles are generally faster to read than write, and they have the
-advantage that type information is stored with the data, allowing
-in memory data structures to be populated directly by reading the
-pickle. 
+\lit{SloppyTree} has a few additional features. An iterator for a
+\lit{dict} only iterates over the keys, but we need to see the
+values, and be able to distinguish between leaf and non-leaf nodes.
+For its use in \anagrammar, we need an easy way to show all the anagrams,
+which is to say, each path from the root to each leaf. Therefore,
+we have an additional iterator/generator for these, through the
+function \lit{SloppyTree.tree\_as\_table()}.
 
 
 
@@ -1050,7 +378,7 @@ pickle.
     \hfill{}
     \begin{tabular}{ll}
         \multicolumn{2}{l}{\textbf{George Flanagin, Provost Office}}\\
-        \multicolumn{2}{l}{\textbf{Data Analysis \& Data Science}}\\
+        \multicolumn{2}{l}{\textbf{Academic Research Computing}}\\
         \hline \\ [-1.9ex]
         \textbf{Phone:}&+1.804.287.6392\\
         \textbf{Address:}&Richmond Hall, Office 104\\
