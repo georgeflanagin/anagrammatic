@@ -50,12 +50,10 @@ Windows is a BYODictionary experience.
 ### The tuning parameters
 
 ```bash
-anagrammar [-h] -d DICTIONARY [-m MIN_LEN] 
-    [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] 
-    [-t CPU_TIME] 
-    [-v VERBOSE]
-    [-z]
-    phrase
+usage: anagrammar [-h] [-d DICTIONARY] [-m MIN_LEN]
+                  [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] [-t CPU_TIME] [-v VERBOSE]
+                  [-z]
+                  phrase
 
 A brute force anagram finder.
 
@@ -69,29 +67,16 @@ optional arguments:
   -m MIN_LEN, --min-len MIN_LEN
                         Minimum length of any word in the anagram. The default is 3.
   --nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}
-                        Niceness may affect execution time. The default is 7, which is about twice as nice as the average program.
+                        Niceness may affect execution time. The default is 7, which is about twice as
+                        nice as the average program.
   -t CPU_TIME, --cpu-time CPU_TIME
-                        Set a maximum number of CPU seconds for execution.
+                        Set a maximum number of CPU seconds for execution. The default is 60.
   -v VERBOSE, --verbose VERBOSE
-                        Set the logging level on a scale from 10 to 50. The default is 35, which only logs errors.
+                        Set the logging level on a scale from 10 to 50. The default is 35, which only
+                        logs errors.
   -z, --zap             If set, remove old logfile[s].
+
 ```
-
-`-m`, `--min-len` This tells the anagrammar the shortest word to consider
-when building the initial list of possible words. The default value is
-`3` because a lot of anagrams with two letter words are uninteresting.
-
-`-d`, `--dictionary` In this project, I have provided a dictionary built
-from Google's list of 20,000 words.  The one named `words` is much larger,
-coming from the New Webster's Dictionary that is included with Linux in
-`/usr/share/dict/words`.
-
-`-t`, `--cpu-time` The program can be caused to stop after a given number of seconds
-of execution. I put this in when I was developing the program, and I never got
-around to removing it.
-
-`--verbose` Takes a number that corresponds to the loglevel. The default is
-`35`, and this value eliminates almost all output.
 
 ### Start with something small.
 
@@ -164,7 +149,9 @@ space delimited. You type in something like:
 `python3 dictbuilder.py [-b] -i /path/to/your/file nameyouwanttouse`
 
 The result will be a file named `nameyouwanttouse.numbers` that you can 
-reference in your calculation as `nameyouwanttouse`.
+reference in your calculation as `nameyouwanttouse`. If you use the `-b` 
+option, the dictionary will ignore the prebuilt lists of 3, 4, and 5 letter
+words, and use what's in the dictionary.
 
 ### Why are the dictionaries saved as pickles? That limits their use to Python. 
 
@@ -174,13 +161,12 @@ this. There are only about 100 lines of code that do the work.
 
 ### Why did you not follow PEP-8 exactly? Your style is terrible. 
 
-OK, first I have heard worse and I have committed bigger sins.
+OK, first I have heard worse and I have committed much bigger sins.
 Recently. My best professional friend once described my programming
 as "entirely adequate." A written performance review once included
 the words "the only thing George knows how to do is write a compiler."
 Both statements are probably correct.
 
 If it bothers you, you can experiment with
-[AutoPEP8](https://pypi.org/project/autopep8/0.8/).  It is excellent;
-I do not worry about these kinds of things until the end of a project.
+[AutoPEP8](https://pypi.org/project/autopep8/0.8/).  It is excellent.
 
