@@ -49,26 +49,24 @@ start_time = time.time()
 # keep in mind that all the factors of the large composite numbers
 # are small, so the division goes quickly.
 ###
-primes26 = (2, 3, 5, 7, 11, 
-    13, 17, 19, 23, 29, 
-    31, 37, 41, 43, 47, 
-    53, 59, 61, 67, 71, 
-    73, 79, 83, 89, 97,
-    101 )
+primes26 = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 
+    43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101 )
 primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
 
 def word_value(word:str) -> int:
     return math.prod(primes[_] for _ in word)
 
 current_root = 1
-deadends = 0
-grams = 0
-interval = 1<<18
 seen_factors = set()
 smallest_word = 1
 time_out = 0
-tries = 0
 words={}
+
+stats = SloppyTree()
+stats.tries = 0       # number of edges considered.
+stats.deadends = 0    # number of dead edges.
+stats.grams = 0       # number of anagrams found.
+stats.roots = 0       # number of level 0 edges.
 
 
 @trap
@@ -110,12 +108,11 @@ def find_words(phrase_v:int,
         then this is a dead-end, and the parent of the leaf
         cannot be a part of an anagram.
     """
-    global words, tries, deadends, grams
+    global stats
     logger.info(f"{depth=} , {phrase_v=}")
     global smallest_word
     global seen_factors
     global current_root
-    global interval
 
     matches = SloppyTree()
     root = matches[phrase_v]
@@ -131,14 +128,13 @@ def find_words(phrase_v:int,
 
     try:
         for factor in factors:
-            tries += 1
-            if tries % interval == 0: 
-                sys.stderr.write(f"{round(time.time()-start_time, 3)} : {tries}\n")
+            stats.tries += 1
 
             # Tree pruning takes place here in two steps.
             # At depth == 0, we add this factor to the list of seen factors,
             #   and set the current_root to the current factor.
             if not depth: 
+                stats.roots += 1
                 seen_factors.add(factor)
                 current_root = factor
 
@@ -147,7 +143,7 @@ def find_words(phrase_v:int,
             # of this subtree. This guards against the case in which the 
             # same factor might appear twice or more. 
             elif factor in seen_factors and factor - current_root:
-                deadends += 1
+                stats.deadends += 1
                 continue
 
             # For clarity.
@@ -163,10 +159,10 @@ def find_words(phrase_v:int,
             residual = phrase_v // factor
             if residual in factors: # Found one.
                 root[factor] = residual
-                grams += 1
+                stats.grams += 1
 
             elif residual < smallest_factor: # This is a dead-end.
-                deadends += 1
+                stats.deadends += 1
 
             else: # We don't yet know.
                 if (t := find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)):
@@ -201,7 +197,6 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     global tries
     global time_out
     global topline
-    global deadends
     global smallest_word
     global words
 
@@ -263,12 +258,15 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     for i, ngram in enumerate(sorted(list(numeric_anagrams))):
         text_gram = tuple(words.get(_) for _ in ngram)
-        print(text_gram)
 
-    print(f"Tree had {j+1} paths.")
-    print(f"Tree had {i+1} distinct paths.")
+    text_anagrams = sorted([ tuple(words.get(_) for _ in ngram) 
+        for ngram in sorted(list(numeric_anagrams)) ])
 
-    print(f"{tries=} {deadends=}")
+    for line in text_anagrams:
+        print(line)
+
+    print(f"Tree had {j+1} paths; {i+1} distinct.")
+    print(f"{stats=}")
 
     return sys.exit(os.EX_OK)
 
@@ -282,7 +280,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="anagrammar", 
         description="A brute force anagram finder.")
 
-    parser.add_argument('-d', '--dictionary', type=str, required=True,
+    parser.add_argument('-d', '--dictionary', type=str, default="words",
         help="Name of the dictionary of words, or a pickle of the dictionary.")
     parser.add_argument('-m', '--min-len', type=int, default=3,
         help="Minimum length of any word in the anagram. The default is 3.")
