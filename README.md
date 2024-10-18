@@ -10,7 +10,7 @@ A number of people with whom I work use the [Internet Anagram
 Server](https://new.wordsmith.org/anagram/), and apparently we are not alone.
 It seems always to be down or overwhelmed by requests. To minimize
 its CPU usage, it works with a small list of common words. I'm
-interested in fewer, longer, and more interesting words.
+interested in more interesting words.
 
 For example, `embrace inclusivity` is an anagram for 
 
@@ -40,27 +40,38 @@ not this one
    'n', 'r', 's', 't', 'u', 'v', 'y']`
 
 The approach taken in this program is a weakened implementation of 
-Knuth's Algorithm X, described in his paper: 
+Knuth's *Algorithm X*, described in his paper: 
 
 https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf
 
 The approach is identical: each option (word) we examine is removed 
-as we go,and we are left with a smaller exact cover problem, the remainder. If we 
+as we go, and we are left with a smaller exact cover problem, the remainder. If we 
 are eventually left with a null set, then we have found an anagram. 
 The options are construed to be words in some dictionary, and if 
-our remainder cannot be spanned by the remaining options, then this
+our residual (Knuth's term) cannot be spanned by the remaining options, then this
 branch was a dead end, and we go back to consider other options.
 
-I borrowed the calculations from Martin Schweitzer (@martinschweitzer on github) by
+I borrowed the primitive calculations from Martin Schweitzer (@martinschweitzer on github) by
 assigning the letters of the alphabet to the 26 smallest prime numbers. This 
 legerdemain eliminated the shuffling and sorting of the letters through string
-operations, and the entire calculation is reduced to integer arithmetic.
+operations, and the entire calculation is reduced to integer arithmetic. If 
+this approach is unfamiliar, a few minutes spent reviewing the fundamental 
+theorem of arithmetic will clear it up for you: 
 
-Of course, anagrams differ from the basic perfect cover problem in two 
+https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic
+
+Of course, anagrams differ from the basic perfect cover problem in 
 other material ways. The first is that we are not looking for just
 one anagram --- we want to find them all. The second is that nearly 
 every combination of two and three letters has been used as an acronym
 for something in English, for example, TLA -- Three Letter Acronym.
+
+If you read about *Algorithm X* you will notice that Knuth starts out by 
+saying that one should consider the smallest option first, and from several
+such options all of equal size, the selection can be made arbitrarily. 
+The implementation choice to represent each option as a composite integer 
+that stands for a dictionary word has the advantage that it is easy to start
+with the ``smallest'' option and easy to sort the options by size.
 
 
 ## What do you need to run it?
@@ -166,10 +177,6 @@ compact representation than something like:
 ('fragile', 'gag', 'none')
 ```
 
-## How does it work?
-
-There are no string operations in the code; it is all integer math.
-
 ## Trivia Q & A.
 
 ### I don't like your dictionaries. How do I build one of my own?
@@ -182,7 +189,7 @@ space delimited. You type in something like:
 The result will be a file named `nameyouwanttouse.numbers` that you can 
 reference in your calculation as `nameyouwanttouse`. If you use the `-b` 
 option, the dictionary will ignore the prebuilt lists of 3, 4, and 5 letter
-words, and use what's in the dictionary.
+words, and use exactly what is in the dictionary that you provide.
 
 ### Why are the dictionaries saved as pickles? That limits their use to Python. 
 
