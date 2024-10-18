@@ -59,6 +59,19 @@ this approach is unfamiliar, five minutes spent reviewing [the fundamental
 theorem of arithmetic](https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic) 
 will clear it up for you. 
 
+In the `anagrammar.py` file, the mapping is represented this way:
+
+```python
+primes26 = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 
+    43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101 )
+primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
+```
+
+The ordering of the letters in alignment with the frequency of letters in
+English reduces the magnitude of the composite numbers that represent the
+options, although experience has shown that because the factors of the 
+large composite numbers are much smaller, the `divmod` operation goes 
+quickly.
 
 Of course, anagrams differ from the basic perfect cover problem in 
 other material ways. The first is that we are not looking for just
