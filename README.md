@@ -88,7 +88,11 @@ that stands for a dictionary word has the advantage that it is easy (and
 deterministic) to start
 with the ``smallest'' option, and easy to sort the options by size.
 
-In the case of anagrams, several words may map onto the same option
+In the case of anagrams, several words may map onto the same option. For example
+the well known album by Miles Davis, [Live-Evil](https://en.wikipedia.org/wiki/Live-Evil_(Miles_Davis_album)),
+contains a pair of such words. In our assignment of prime numbers to 
+letters, both words map to the integer 25438 (2 * 7 * 23 * 79) along with
+the words `veil` and `levi`.
 
 
 ## What do you need to run it?
