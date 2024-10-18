@@ -19,6 +19,8 @@ For example, `embrace inclusivity` is an anagram for
 
 and a few other phrases --- but who knew?
 
+## How does it work?
+
 Anagrams are an example of a *perfect cover* problem, as described in
 Knuth Vol 4B, pages 66 ff. A perfect cover is a collection of non-empty,
 disjoint sets whose union is the target set we are trying to "cover." 
@@ -89,11 +91,21 @@ deterministic) to start
 with the ``smallest'' option, and easy to sort the options by size.
 
 In the case of anagrams, several words may map onto the same option. For example
-the well known album by Miles Davis, [Live-Evil](https://en.wikipedia.org/wiki/Live-Evil_(Miles_Davis_album)),
+the title of the well known album by Miles Davis, 
+[Live-Evil](https://en.wikipedia.org/wiki/Live-Evil_(Miles_Davis_album)),
 contains a pair of such words. In our assignment of prime numbers to 
 letters, both words map to the integer 25438 (2 * 7 * 23 * 79) along with
-the words `veil` and `levi`.
+the words `veil`, `vile`, and `levi`. Any anagram that uses one of the words can 
+freely use any of the others.
 
+## What improvements can be made to Anagrammar?
+
+The space being covered grows rapidly. Accepting Knuth's matrix representation,
+the number of columns in the matrix is equivalent to the number of letters in
+the phrase, and the number of rows is equivalent to the number of words from 
+the dictionary that can be formed from the letters in phrase. The number of rows
+converges to the number words in the dictionary as the phrase becomes longer 
+and every letter in the alphabet is present. 
 
 ## What do you need to run it?
 
