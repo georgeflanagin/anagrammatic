@@ -107,6 +107,11 @@ the dictionary that can be formed from the letters in phrase. The number of rows
 converges to the number words in the dictionary as the phrase becomes longer 
 and every letter in the alphabet is present. 
 
+Anagrammar does some pruning along with the backtracking, identifying dead ends
+as it goes. Thus, no [terminal](https://en.wikipedia.org/wiki/Terminal_and_nonterminal_symbols) 
+is evaluated more than once. Of course, constantly searching an ever growing pile of 
+dead ends adds overhead.
+
 ## What do you need to run it?
 
 *A standard distro of Python.* This program does not use external
