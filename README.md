@@ -82,7 +82,7 @@ every combination of two and three letters has been used as an acronym
 for something in English, for example, TLA -- Three Letter Acronym. We 
 must be careful to exclude some of these non-word words.
 
-If you read about *Algorithm X* you will notice that Knuth starts out by 
+When you read about *Algorithm X* you will notice that Knuth starts out by 
 saying that one should consider the smallest option first, and from several
 such options all of equal size, the selection can be made arbitrarily. 
 The implementation choice to represent each option as a composite integer 
@@ -103,7 +103,8 @@ freely use any of the others.
 The space being covered grows rapidly. Accepting Knuth's matrix representation,
 the number of columns in the matrix is equivalent to the number of letters in
 the phrase, and the number of rows is equivalent to the number of words from 
-the dictionary that can be formed from the letters in phrase. The number of rows
+the dictionary (excepting the live-evil-vile-veil-levi problem described earlier) 
+that can be formed from the letters in phrase. The number of rows
 converges to the number words in the dictionary as the phrase becomes longer 
 and every letter in the alphabet is present. 
 
@@ -163,48 +164,29 @@ file, and you will then be able to just type `anagram` to run the program. The
 output will appear on the screen, which is not always useful if there are a lot
 of anagrams to your phrase.
 
-Here is what the output looks like when we route the anagrams to `gkf.txt`.
+Here is what the output looks like using the (provided) dictionary of the 30000
+most common English words when we route the anagrams to `gkf.txt`.
 
 ```
-anagram -d words -m 3 georgeflanagin > gkf.txt
- --cpu-time 60 --dictionary words --min-len 3 --nice 7 --phrase georgeflanagin --verbose 35 --zap False
+anagram -d 30000. -m 3 georgeflanagin > gkf.txt
+ --cpu-time 60 --dictionary 30000. --min-len 3 --nice 7 --phrase georgeflanagin --verbose 35 --zap False
 
-0.857 : 262144
-1.496 : 524288
-2.031 : 786432
-2.42user 0.03system 0:02.46elapsed 99%CPU (0avgtext+0avgdata 110416maxresident)k
-0inputs+6968outputs (0major+24128minor)pagefaults 0swaps
-```
-
-In the `gkf.txt` file, the most interesting anagram to me is `long fearing age`,
-and at the bottom of the file we see the "stats:"
+0.78user 0.01system 0:00.87elapsed 92%CPU (0avgtext+0avgdata 39204maxresident)k
+17624inputs+1064outputs (90major+8194minor)pagefaults 0swaps
 
 ```
-Tree had 194092 paths.
-Tree had 39147 distinct paths.
-tries=803821 deadends=414962
-```
 
-The apparent speed is mainly due to running the program on a reasonably
-fast CPU. The big number, `803821`, is the number of edges in the 
-exhaustive graph. `414962` is the number of edges whose leaves are 
-a value (combination of letters) that do not spell a word in the dictionary.
-After the removing the dead-end edges, there were `194092` paths (NOTE: a path
-consists of at least one edge, but generally more.) from the root to a valid
-leaf.
-Of course, many are duplicates: *long -> fearing -> age* is the same as 
-*age -> long -> fearing*. After removing the duplicates,
-there were only `39147` anagrams of the original phrase.
+In the `gkf.txt` file, the most interesting anagram to me is `long fearing age`.
+
 
 You will notice in the output that the results are written this way, one
-anagram per line.
+anagram per line, with the substitutions *('enon', 'neon', 'none')* elaborated.
 
 ```python
 (('fragile',), ('gag',), ('enon', 'neon', 'none'))
 ```
 
-Many small groups of characters spell more than one word, such
-as `('enon', 'neon', 'none')`, and this allows for a more 
+This allows for a more 
 compact representation than something like:
 
 ```python
@@ -213,7 +195,7 @@ compact representation than something like:
 ('fragile', 'gag', 'none')
 ```
 
-## Trivia Q & A.
+## Q & A.
 
 ### I don't like your dictionaries. How do I build one of my own?
 
