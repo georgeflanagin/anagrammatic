@@ -44,7 +44,7 @@ Knuth's *Algorithm X*, described in detail in
 [this 2000 paper](https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf), and
 in summary form in the [Wikipedia article](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X).
 
-The approach is identical: each option (word) we examine is removed 
+Anagrammar's approach is identical: each option (word) we examine is removed 
 as we go, and we are left with a smaller exact cover problem, the remainder. If we 
 are eventually left with a null set, then we have found an anagram. 
 The options are construed to be words in some dictionary, and if 
@@ -55,7 +55,7 @@ I borrowed the primitive calculations from Martin Schweitzer (@martinschweitzer 
 assigning the letters of the alphabet to the 26 smallest prime numbers. This 
 legerdemain eliminated the shuffling and sorting of the letters through string
 operations, and the entire calculation is reduced to integer arithmetic. If 
-this approach is unfamiliar, a few minutes spent reviewing [the fundamental 
+this approach is unfamiliar, five minutes spent reviewing [the fundamental 
 theorem of arithmetic](https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic) 
 will clear it up for you. 
 
@@ -64,7 +64,8 @@ Of course, anagrams differ from the basic perfect cover problem in
 other material ways. The first is that we are not looking for just
 one anagram --- we want to find them all. The second is that nearly 
 every combination of two and three letters has been used as an acronym
-for something in English, for example, TLA -- Three Letter Acronym.
+for something in English, for example, TLA -- Three Letter Acronym. We 
+must be careful to exclude some of these non-word words.
 
 If you read about *Algorithm X* you will notice that Knuth starts out by 
 saying that one should consider the smallest option first, and from several
@@ -72,9 +73,9 @@ such options all of equal size, the selection can be made arbitrarily.
 The implementation choice to represent each option as a composite integer 
 that stands for a dictionary word has the advantage that it is easy (and 
 deterministic) to start
-with the ``smallest'' option and easy to sort the options by size.
+with the ``smallest'' option, and easy to sort the options by size.
 
-
+In the case of anagrams, several words may map onto the same option
 
 
 ## What do you need to run it?
