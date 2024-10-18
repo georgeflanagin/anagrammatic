@@ -4,12 +4,7 @@ A brute force anagram finder, a teaching tool, and a one gram pun.
 For more information, please consult [Lisa
 Simpson](https://www.youtube.com/watch?v=cj71HnSJaUM).
 
-## Why did you write this program?
-
-Because programming in Python should be fun! I frequently need
-teaching examples, and this seems like a good one: the topic is
-simple and familiar, with the implementation revealing some design
-choices and difficulties.
+## How did this program come to be?
 
 A number of people with whom I work use the [Internet Anagram
 Server](https://new.wordsmith.org/anagram/), and apparently we are not alone.
@@ -24,21 +19,57 @@ For example, `embrace inclusivity` is an anagram for
 
 and a few other phrases --- but who knew?
 
-Many teaching examples are not all that useful for improving one's
-programming. They are minimum working examples of .. something ..,
-but programming is not best learned in MWE size bites, just as human
-language is not learned one word at a time. If you studied Spanish
-and learned that "me | gusta | la | pitón" is "to me | is pleasing
-| the | python," you are never going to learn Spanish. You might as
-well give up now. 
+Anagrams are an example of a *perfect cover* problem, as described in
+Knuth Vol 4B, pages 66 ff. A perfect cover is a collection of non-empty,
+disjoint sets whose union is the target set we are trying to "cover." 
+Knuth calls the subsets *options* and the elements of each option are
+*items*. Thus, no item is a member of more than one option.
+
+One of the subtle and confusing complications of anagrams is that an
+item (letter) may appear in more than one option (word), and for a 
+cover (phrase) to be considered complete, it must use all instances of
+a repeated item. In the example above `embrace inclusivity` has three
+items whose value is i. We are trying to cover this set:
+
+`['a', 'b', 'c', 'c', 'e', 'e', 'i', 'i', 'i', 
+  'l', 'm', 'n', 'r', 's', 't', 'u', 'v', 'y']`
+
+not this one 
+
+`['a', 'b', 'c', 'e', 'i',  'l', 'm', 
+   'n', 'r', 's', 't', 'u', 'v', 'y']`
+
+The approach taken in this program is a weakened implementation of 
+Knuth's Algorithm X, described in his paper: 
+
+https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf
+
+The approach is identical: each option (word) we examine is removed 
+as we go,and we are left with a smaller exact cover problem, the remainder. If we 
+are eventually left with a null set, then we have found an anagram. 
+The options are construed to be words in some dictionary, and if 
+our remainder cannot be spanned by the remaining options, then this
+branch was a dead end, and we go back to consider other options.
+
+I borrowed the calculations from Martin Schweitzer (@martinschweitzer on github) by
+assigning the letters of the alphabet to the 26 smallest prime numbers. This 
+legerdemain eliminated the shuffling and sorting of the letters through string
+operations, and the entire calculation is reduced to integer arithmetic.
+
+Of course, anagrams differ from the basic perfect cover problem in two 
+other material ways. The first is that we are not looking for just
+one anagram --- we want to find them all. The second is that nearly 
+every combination of two and three letters has been used as an acronym
+for something in English, for example, TLA -- Three Letter Acronym.
+
 
 ## What do you need to run it?
 
-1. A standard distro of Python. This program does not use external
+*A standard distro of Python.* This program does not use external
 libraries, and the source is cut into a few files simply to give
 it a straightforward organization.
 
-1. If you do not like the provided dictionaries (taken from the
+*A dictionary.* If you do not like the provided dictionaries (taken from the
 Webster's Second International Dictionary), you can use the
 `dictbuilder.py` file to create your own.  If you run the program
 on Linux or Mac OS, the program should find the system dictionaries
@@ -49,7 +80,7 @@ Windows is a BYODictionary experience.
 
 ### The tuning parameters
 
-```bash
+```
 usage: anagrammar [-h] [-d DICTIONARY] [-m MIN_LEN]
                   [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] [-t CPU_TIME] [-v VERBOSE]
                   [-z]
