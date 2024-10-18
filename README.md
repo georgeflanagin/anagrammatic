@@ -19,19 +19,26 @@ For example, `embrace inclusivity` is an anagram for
 
 and a few other phrases --- but who knew?
 
+As a member of University of Richmond's professional staff, I am in continual
+need of classroom and workshop examples that show the solutions, complete or
+approximate, to classic computer science problems. It is difficult to find such 
+examples, and I usually write my own. 
+
 ## How does it work?
 
 Anagrams are an example of a *perfect cover* problem, as described in
 Knuth Vol 4B, pages 66 ff. A perfect cover is a collection of non-empty,
 disjoint sets whose union is the target set we are trying to "cover." 
 Knuth calls the subsets *options* and the elements of each option are
-*items*. Thus, no item is a member of more than one option.
+*items*. Thus, no item is a occurs more than once in an option, and no
+item appears in more than one option in any single cover.
 
 One of the subtle and confusing complications of anagrams is that an
-item (letter) may appear in more than one option (word), and for a 
+item (letter) may appear in more than one option (word). For a 
 cover (phrase) to be considered complete, it must use all instances of
 a repeated item. In the example above `embrace inclusivity` has three
-items whose value is i. We are trying to cover this set:
+items whose value is *i*, two whose value is *c*, and two whose value is *e*. 
+We are trying to cover this set:
 
 `['a', 'b', 'c', 'c', 'e', 'e', 'i', 'i', 'i', 
   'l', 'm', 'n', 'r', 's', 't', 'u', 'v', 'y']`
@@ -41,23 +48,24 @@ not this one
 `['a', 'b', 'c', 'e', 'i',  'l', 'm', 
    'n', 'r', 's', 't', 'u', 'v', 'y']`
 
-The approach taken in this program is a weakened implementation of 
+The approach taken in this program is a modified implementation of 
 Knuth's *Algorithm X*, described in detail in 
 [this 2000 paper](https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf), and
 in summary form in the [Wikipedia article](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X).
 
 Anagrammar's approach is identical: each option (word) we examine is removed 
-as we go, and we are left with a smaller exact cover problem, the remainder. If we 
+as we go, and we are left with a smaller exact cover problem. If we 
 are eventually left with a null set, then we have found an anagram. 
 The options are construed to be words in some dictionary, and if 
-our residual (Knuth's term) cannot be spanned by the remaining options, then this
+our residual (Knuth's term for the remainder) cannot be spanned by the remaining options, then this
 branch was a dead end, and we go back to consider other options.
 
-I borrowed the primitive calculations from Martin Schweitzer (@martinschweitzer on github) by
+I borrowed the primitive representation from Martin Schweitzer (@martinschweitzer on github) by
 assigning the letters of the alphabet to the 26 smallest prime numbers. This 
 legerdemain eliminated the shuffling and sorting of the letters through string
-operations, and the entire calculation is reduced to integer arithmetic. If 
-this approach is unfamiliar, five minutes spent reviewing [the fundamental 
+operations, and the entire analysis is reduced to integer arithmetic --- something that
+computers are good at. If 
+the approach is unfamiliar, no more than five minutes spent reviewing [the fundamental 
 theorem of arithmetic](https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic) 
 will clear it up for you. 
 
@@ -73,7 +81,10 @@ The ordering of the letters in alignment with the frequency of letters in
 English reduces the magnitude of the composite numbers that represent the
 options, although experience has shown that because the factors of the 
 large composite numbers are much smaller, the `divmod` operation goes 
-quickly.
+quickly. The above ordering goes one step farther, as it is an empirical
+analysis of the frequency of letters in the Linux dictionary, because we
+need not concern ourselves with how common a word is, only that it appears
+exactly once in the dictionary.
 
 Of course, anagrams differ from the basic perfect cover problem in 
 other material ways. The first is that we are not looking for just
@@ -108,10 +119,13 @@ that can be formed from the letters in phrase. The number of rows
 converges to the number words in the dictionary as the phrase becomes longer 
 and every letter in the alphabet is present. 
 
-Anagrammar does some pruning along with the backtracking, identifying dead ends
+Unfortunately for anagrams, exact cover problems are difficult to attack with
+parallel programming methods. 
+
+Anagrammar does some pruning with its backtracking, identifying dead ends
 as it goes. Thus, no [terminal](https://en.wikipedia.org/wiki/Terminal_and_nonterminal_symbols) 
 is evaluated more than once. Of course, constantly searching an ever growing pile of 
-dead ends adds overhead.
+dead ends adds overhead. 
 
 ## What do you need to run it?
 
