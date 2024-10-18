@@ -40,9 +40,9 @@ not this one
    'n', 'r', 's', 't', 'u', 'v', 'y']`
 
 The approach taken in this program is a weakened implementation of 
-Knuth's *Algorithm X*, described in his paper: 
-
-https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf
+Knuth's *Algorithm X*, described in detail in 
+[this 2000 paper](https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf), and
+in summary form in the [Wikipedia article](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X).
 
 The approach is identical: each option (word) we examine is removed 
 as we go, and we are left with a smaller exact cover problem, the remainder. If we 
@@ -55,10 +55,10 @@ I borrowed the primitive calculations from Martin Schweitzer (@martinschweitzer 
 assigning the letters of the alphabet to the 26 smallest prime numbers. This 
 legerdemain eliminated the shuffling and sorting of the letters through string
 operations, and the entire calculation is reduced to integer arithmetic. If 
-this approach is unfamiliar, a few minutes spent reviewing the fundamental 
-theorem of arithmetic will clear it up for you: 
+this approach is unfamiliar, a few minutes spent reviewing [the fundamental 
+theorem of arithmetic](https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic) 
+will clear it up for you. 
 
-https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic
 
 Of course, anagrams differ from the basic perfect cover problem in 
 other material ways. The first is that we are not looking for just
@@ -70,8 +70,11 @@ If you read about *Algorithm X* you will notice that Knuth starts out by
 saying that one should consider the smallest option first, and from several
 such options all of equal size, the selection can be made arbitrarily. 
 The implementation choice to represent each option as a composite integer 
-that stands for a dictionary word has the advantage that it is easy to start
+that stands for a dictionary word has the advantage that it is easy (and 
+deterministic) to start
 with the ``smallest'' option and easy to sort the options by size.
+
+
 
 
 ## What do you need to run it?
@@ -87,14 +90,12 @@ on Linux or Mac OS, the program should find the system dictionaries
 without your having to do anything extra. I have been told that
 Windows is a BYODictionary experience.
 
-## How about an example?
+## How is it run?
 
-### The tuning parameters
-
+### The help
 ```
 usage: anagrammar [-h] [-d DICTIONARY] [-m MIN_LEN]
-                  [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] [-t CPU_TIME] [-v VERBOSE]
-                  [-z]
+                  [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] [-t CPU_TIME] [-v VERBOSE] [-z]
                   phrase
 
 A brute force anagram finder.
@@ -102,20 +103,20 @@ A brute force anagram finder.
 positional arguments:
   phrase                The phrase. If it contains spaces, it must be in quotes.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -d DICTIONARY, --dictionary DICTIONARY
                         Name of the dictionary of words, or a pickle of the dictionary.
   -m MIN_LEN, --min-len MIN_LEN
                         Minimum length of any word in the anagram. The default is 3.
   --nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}
-                        Niceness may affect execution time. The default is 7, which is about twice as
-                        nice as the average program.
+                        Niceness may affect execution time. The default is 7, which is about twice as nice as
+                        the average program.
   -t CPU_TIME, --cpu-time CPU_TIME
-                        Set a maximum number of CPU seconds for execution. The default is 60.
+                        Set a maximum number of CPU seconds for execution.
   -v VERBOSE, --verbose VERBOSE
-                        Set the logging level on a scale from 10 to 50. The default is 35, which only
-                        logs errors.
+                        Set the logging level on a scale from 10 to 50. The default is 35, which only logs
+                        errors.
   -z, --zap             If set, remove old logfile[s].
 
 ```
