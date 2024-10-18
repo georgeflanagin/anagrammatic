@@ -34,7 +34,7 @@ Knuth calls the subsets *options* and the elements of each option are
 item appears in more than one option in any single cover.
 
 One of the subtle and confusing complications of anagrams is that an
-item (letter) may appear in more than one option (word). For a 
+item (letter) may appear in more than once in an option (word). For a 
 cover (phrase) to be considered complete, it must use all instances of
 a repeated item. In the example above `embrace inclusivity` has three
 items whose value is *i*, two whose value is *c*, and two whose value is *e*. 
