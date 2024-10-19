@@ -111,7 +111,11 @@ freely use any of the others.
 
 ## What improvements can be made to Anagrammar?
 
-The space being covered grows rapidly. Accepting Knuth's matrix representation,
+Unfortunately for anagrams, exact cover problems are difficult to attack with
+parallel programming methods. 
+
+The space being covered grows rapidly as the phrase we are analyzing grows longer. 
+Accepting Knuth's matrix representation,
 the number of columns in the matrix is equivalent to the number of letters in
 the phrase, and the number of rows is equivalent to the number of words from 
 the dictionary (excepting the live-evil-vile-veil-levi problem described earlier) 
@@ -119,13 +123,19 @@ that can be formed from the letters in phrase. The number of rows
 converges to the number words in the dictionary as the phrase becomes longer 
 and every letter in the alphabet is present. 
 
-Unfortunately for anagrams, exact cover problems are difficult to attack with
-parallel programming methods. 
-
 Anagrammar does some pruning with its backtracking, identifying dead ends
 as it goes. Thus, no [terminal](https://en.wikipedia.org/wiki/Terminal_and_nonterminal_symbols) 
 is evaluated more than once. Of course, constantly searching an ever growing pile of 
-dead ends adds overhead. 
+dead ends adds overhead. This is called [memoization](https://en.wikipedia.org/wiki/Memoization). 
+
+**NB** *The explanation conflates the length of words with the value of integer to which
+the words are mapped. Hopefully, the explanation is still clear.*
+
+The most important pruning technique is this one. Suppose we are looking for 
+anagrams for `george flanagin`. Starting with the short words, we find `age long fearing`
+when using `age` as a starting point. When we get to four letter words, we examine 
+`long`. There is no need to look at any word shorter than `long` because all anagrams
+involving `age` have already been found when we used `age` as the starting point. 
 
 ## What do you need to run it?
 
