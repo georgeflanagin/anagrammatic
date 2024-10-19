@@ -109,12 +109,14 @@ letters, both words map to the integer 25438 (2 * 7 * 23 * 79) along with
 the words `veil`, `vile`, and `levi`. Any anagram that uses one of the words can 
 freely use any of the others.
 
-## What improvements can be made to Anagrammar?
+## What improvements can be made to Anagrammar's run time?
 
 Unfortunately for anagrams, exact cover problems are difficult to attack with
-parallel programming methods. 
+parallel programming methods. There is no clear way to partition the options (words) into
+subspaces such that we can be assured that we do not omit covers (anagrams) that use
+options from multiple spaces.
 
-The space being covered grows rapidly as the phrase we are analyzing grows longer. 
+Of course, the space being covered grows rapidly as the phrase we are analyzing grows longer. 
 Accepting Knuth's matrix representation,
 the number of columns in the matrix is equivalent to the number of letters in
 the phrase, and the number of rows is equivalent to the number of words from 
