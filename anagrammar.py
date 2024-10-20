@@ -38,6 +38,11 @@ __status__ = 'Teaching example'
 __license__ = 'MIT'
 
 ###
+# Globals.
+###
+logger = None.
+
+###
 # Just for curiosity, I wonder how long these things take.
 ###
 start_time = time.time()
@@ -75,7 +80,6 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     Print the command line arguments as they would have been if the user
     had specified every possible one (including optionals and defaults).
     """
-    if not return_it: print("")
     opt_string = ""
     for _ in sorted(vars(args).items()):
         opt_string += " --"+ _[0].replace("_","-") + " " + str(_[1])
@@ -233,8 +237,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     largest_word = max(words) if words else 0
 
     logger.info(f"Initial pruning for {original_phrase_value=} {len(words)=}") 
-    logger.info(f"{smallest_word=}")
-    logger.info(f"{largest_word=}")
+    logger.debug(f"{smallest_word=}")
+    logger.debug(f"{largest_word=}")
 
     # Let's reduce the complexities of dragging around the dictionary, and
     # just leave it here for later review. We'll figure out which words 
@@ -242,11 +246,14 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     anagrams = SloppyTree()
     try:
         anagrams[original_phrase_value] = find_words(original_phrase_value, tuple(words.keys()))
+
     except KeyboardInterrupt as e:
         print("You pressed control C")
         sys.exit(os.EX_OK) 
+
     except Exception as e:
         raise
+
     finally:
         logger.info(f"{anagrams=}")
 
