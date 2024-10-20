@@ -111,7 +111,8 @@ the title of the well known album by Miles Davis,
 [Live-Evil](https://en.wikipedia.org/wiki/Live-Evil_(Miles_Davis_album)),
 contains a pair of such words. In our assignment of prime numbers to 
 letters, both words map to the integer 25438 (2 * 7 * 23 * 79) along with
-the words `veil`, `vile`, and `levi`. Any anagram that uses one of the words can 
+the words `veil`, `vile`, and `levi`. These words are *self-anagrams*: 
+any anagram that uses one of the words can 
 freely use any of the others.
 
 ## What is in the Python files?
