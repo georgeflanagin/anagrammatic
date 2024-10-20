@@ -301,8 +301,8 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
 def dictloader(filename:str) -> dict:
     """
     read the pickled dictionaries from files whose name
-    matches the argument, and with .forward and .reversed 
-    appended to the name.
+    matches the argument, and with .numbers appended to
+    the name.
 
     returns -- forward, reversed
     """
