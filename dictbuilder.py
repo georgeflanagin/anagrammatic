@@ -231,15 +231,26 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     if not myargs.bare:
         # Let's use /our/ three and two letter words, Knuth's
         # five letter words, and the Scrabble dictionary's four letter words.
+        # There is always a possibility that either the four or five 
+        # letter word files will have been deleted, so we will forgive
+        # any absences.
         data = [ _ for _ in data if len(_) > 5 ]
-        with open('./knuths.5757.five.letter.words.txt') as in_f:
-            five_letter_words = in_f.read().split()
-        data.extend(five_letter_words)
-        with open('./four.letter.words') as in_f:
-            four_letter_words = in_f.read().split()
-        data.extend(four_letter_words)
+        try:
+            with open('./knuths.5757.five.letter.words.txt') as in_f:
+                five_letter_words = in_f.read().split()
+            data.extend(five_letter_words)
+        except:
+            pass
 
-        print("Adding short words from internal list.")
+        try:
+            with open('./four.letter.words') as in_f:
+                four_letter_words = in_f.read().split()
+            data.extend(four_letter_words)
+        except:
+            pass
+
+
+        print("Adding short words from internal lists.")
         data.extend(three_letter_words) 
         data.extend(two_letter_words)
         data.extend(('a', 'i'))
