@@ -111,18 +111,20 @@ freely use any of the others.
 
 ## What is in the Python files?
 
-`anagrammar.py` --- The main program 
+`anagrammar.py` --- The main program,
 
-`dictbuilder.py`
+`dictbuilder.py` --- Converts a white-space delimited file of "words" to a 
+pickle of a dict where the keys are integers and the values are tuples of the
+words that map to the key.
 
-`gkfdecorators.py`
+`gkfdecorators.py` --- Contains the `@trap` decorator to assist with debugging.
 
-`sloppytree.py`
+`sloppytree.py` --- A general purpose data structure derived from Python's `dict` 
+that creates for a very flexible n-ary tree. Credit to my interns,
+[Alina Enikeeva](), for adding additional iterators, and
+[Skyler He](https://github.com/SkylerHe) for extensive testing.
 
-
-[Skyler He](https://github.com/SkylerHe)
-
-`urlogger.py`
+`urlogger.py` --- A wrapper around Python's `logging` module.
 
 ## What improvements can be made to Anagrammar's run time?
 
