@@ -109,6 +109,21 @@ letters, both words map to the integer 25438 (2 * 7 * 23 * 79) along with
 the words `veil`, `vile`, and `levi`. Any anagram that uses one of the words can 
 freely use any of the others.
 
+## What is in the Python files?
+
+`anagrammar.py` --- The main program 
+
+`dictbuilder.py`
+
+`gkfdecorators.py`
+
+`sloppytree.py`
+
+
+[Skyler He](https://github.com/SkylerHe)
+
+`urlogger.py`
+
 ## What improvements can be made to Anagrammar's run time?
 
 Unfortunately for anagrams, exact cover problems are difficult to attack with
