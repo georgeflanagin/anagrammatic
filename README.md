@@ -81,10 +81,15 @@ The ordering of the letters in alignment with the frequency of letters in
 English reduces the magnitude of the composite numbers that represent the
 options, although experience has shown that because the factors of the 
 large composite numbers are much smaller, the `divmod` operation goes 
-quickly. The above ordering goes one step farther, as it is an empirical
+quickly. For example, our test phrase (`embrace inclusivity`) evaluates to
+695823563878969513260, which is a little greater than 2^69, whereas a word
+like `race` which might be a component of an anagram evaluate to only 870,
+not even 2^10. 
+
+The above ordering goes one step farther, as it is an empirical
 analysis of the frequency of letters in the Linux dictionary, because we
-need not concern ourselves with how common a word is, only that it appears
-exactly once in the dictionary.
+need not concern ourselves with how *common* a word is, only that it appears
+exactly *once* in any dictionary.
 
 Of course, anagrams differ from the basic perfect cover problem in 
 other material ways. The first is that we are not looking for just
