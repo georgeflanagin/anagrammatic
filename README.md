@@ -24,6 +24,10 @@ need of classroom and workshop examples that show the solutions, complete or
 approximate, to classic computer science problems. It is difficult to find such 
 examples, and I usually write my own. 
 
+I take this moment to credit and thank my interns,
+[Alina Enikeeva](), for adding additional iterators to the underlying data structure, and
+[Skyler He](https://github.com/SkylerHe) for **extensive** testing.
+
 ## How does it work?
 
 Anagrams are an example of a *perfect cover* problem, as described in
@@ -126,9 +130,7 @@ words that map to the key.
 `gkfdecorators.py` --- Contains the `@trap` decorator to assist with debugging.
 
 `sloppytree.py` --- A general purpose data structure derived from Python's `dict` 
-that creates for a very flexible n-ary tree. Credit to my interns,
-[Alina Enikeeva](), for adding additional iterators, and
-[Skyler He](https://github.com/SkylerHe) for extensive testing.
+that creates for a very flexible n-ary tree. 
 
 `urlogger.py` --- A wrapper around Python's `logging` module.
 
