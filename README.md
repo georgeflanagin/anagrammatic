@@ -24,9 +24,10 @@ need of classroom and workshop examples that show the solutions, complete or
 approximate, to classic computer science problems. It is difficult to find such 
 examples, and I usually write my own. 
 
-I take this moment to credit and thank my interns:
-[Alina Enikeeva]() for adding additional iterators to the underlying data structure, and
-[Skyler He](https://github.com/SkylerHe) for **extensive** testing.
+I take this moment to credit and thank my former intern
+[Alina Enikeeva](https://www.linkedin.com/in/alina-enikeeva) for adding additional 
+iterators to the underlying data structure, and class of 2025 intern
+[Skyler He](https://github.com/SkylerHe) for her **extensive** testing.
 
 ## How does it work?
 
