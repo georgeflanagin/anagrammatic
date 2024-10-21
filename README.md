@@ -31,8 +31,10 @@ iterators to the underlying data structure, and class of 2025 intern
 
 ## How does it work?
 
-Anagrams are an example of a *perfect cover* problem, as described in
-Knuth Vol 4B, pages 66 ff. A perfect cover is a collection of non-empty,
+Anagrams are an example of a *perfect cover* problem, as described in Knuth's
+*Art of Computer Programming*, 
+[The Combinatorial Algorithms, Volume 4B](https://www.amazon.com/Art-Computer-Programming-Combinatorial-Information/dp/0201038064/), 
+pages 66 ff. A perfect cover is a collection of non-empty,
 disjoint sets whose union is the target set we are trying to "cover." 
 Knuth calls the subsets *options* and the elements of each option are
 *items*. Thus, no item is a occurs more than once in an option, and no
