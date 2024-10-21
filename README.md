@@ -89,7 +89,7 @@ English reduces the magnitude of the composite numbers that represent the
 options, although experience has shown that because the factors of the 
 large composite numbers are much smaller, the `divmod` operation goes 
 quickly. For example, our test phrase (`embrace inclusivity`) evaluates to
-695823563878969513260, which is a little greater than 2<sup>69</sup>, whereas a word
+695823563878969513260, which is greater than 2<sup>69</sup>, whereas a word
 like `race` which might be a component of an anagram evaluate to only 870,
 not even 2<sup>10</sup>. 
 
