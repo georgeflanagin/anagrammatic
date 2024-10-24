@@ -93,16 +93,17 @@ The ordering of the letters in alignment with the frequency of letters in
 English reduces the magnitude of the composite numbers that represent
 options, although experience has shown that because the factors of the 
 large composite numbers are comparatively small, the `divmod` operation goes 
-quickly even with a less optimized mapping. For example, our test phrase (`embrace inclusivity`) evaluates to
+quickly even with a less optimized mapping. For example, our test phrase (`embrace inclusivity`) 
+maps to
 **695823563878969513260**, which is greater than **2**<sup>69</sup>, whereas a word
-like `race` which might be a component of an anagram evaluate to only **870**,
+like `race` which might be a component of an anagram maps to only **870**,
 not even **2**<sup>10</sup>. 
 
 The above ordering goes one step farther, as it is an empirical
 analysis of the frequency of letters in the Linux dictionary rather than some
 corpus of English. We
 need not concern ourselves with how *common* a word is, only that it appears
-exactly *once* in any dictionary.
+exactly *once* in any single dictionary.
 
 A note to those of you who may modify the code --- if you change the above mapping
 between primes and letters, you will need to rebuild your dictionaries. An obvious,
