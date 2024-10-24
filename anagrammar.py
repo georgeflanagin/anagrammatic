@@ -114,7 +114,7 @@ def find_words(phrase_v:int,
         cannot be a part of an anagram.
     """
     global stats
-    logger.info(f"{depth=} , {phrase_v=}")
+    logger.debug(f"{depth=} , {phrase_v=}")
     global smallest_word
     global seen_factors
     global current_root
@@ -140,6 +140,7 @@ def find_words(phrase_v:int,
             #   and set the current_root to the current factor.
             if not depth:
                 stats.roots += 1
+                logger.debug(f"root {factor=}")
                 seen_factors.add(factor)
                 current_root = factor
 
@@ -148,6 +149,7 @@ def find_words(phrase_v:int,
             # of this subtree. This guards against the case in which the
             # same factor might appear twice or more.
             elif factor in seen_factors and factor - current_root:
+                logger.debug(f"skipping {factor}")
                 stats.deadends += 1
                 continue
 
@@ -163,13 +165,16 @@ def find_words(phrase_v:int,
 
             residual = phrase_v // factor
             if residual in factors: # Found one.
+                logger.debug(f"found terminal: {residual}")
                 root[factor] = residual
                 stats.grams += 1
 
             elif residual < smallest_factor: # This is a dead-end.
+                logger.debug(f"deadend: {residual}")
                 stats.deadends += 1
 
             else: # We don't yet know.
+                logger.debug(f"recursing with {residual}")
                 if (t := find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)):
                     root[factor] = t
 
