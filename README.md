@@ -31,10 +31,10 @@ iterators to the underlying data structure, and class of 2025 intern
 
 ## How does it work?
 
-Anagrams are an example of a *perfect cover* problem, as described in Knuth's
+Anagrams are an example of a *exact cover* problem, as described in Knuth's
 *Art of Computer Programming*, 
 [The Combinatorial Algorithms, Volume 4B](https://www.amazon.com/Art-Computer-Programming-Combinatorial-Information/dp/0201038064/), 
-pages 66 ff. A perfect cover is a collection of non-empty,
+pages 66 ff. An exact cover (alternatively: *perfect cover*) is a collection of non-empty,
 disjoint sets whose union is the target set we are trying to "cover." 
 Knuth calls the subsets *options* and the elements of each option are
 *items*. Thus, no item occurs more than once in an option, and no
@@ -59,8 +59,10 @@ The approach taken in this program is a modified implementation of
 Knuth's *Algorithm X*, described in detail in 
 [this 2000 paper](https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf), and
 in summary form in the [Wikipedia article](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X).
+Algorithm X is a part of what is known as *backtracking*, an important class of algorithms
+that are summarized [here](https://en.wikipedia.org/wiki/Backtracking).
 
-Anagrammar's approach is straightforward interpretation of Algorithm X: 
+Anagrammar's approach is straightforward exploitation of Algorithm X: 
 each option (word) we examine is removed 
 as we go, and we are left with a smaller exact cover problem. If we 
 are eventually left with a null set, then we have found a cover (anagram). 
@@ -125,7 +127,7 @@ Knuth, we never need to choose among options of equal size because the
 use of prime factors effectively creates a sub-sort on size.
 
 Another difference between covers and anagrams is that within any anagram, several words may map onto the same option. 
-These words are *self-anagrams*: 
+These words are *self-anagrams* ---
 any anagram that uses one of the words can 
 freely use any of the others. For example
 the title of the well known album by Miles Davis, 
@@ -136,7 +138,8 @@ the words `veil`, `vile`, and `levi`. What unlikely bedfellows.
 
 ## What is in the Python files?
 
-`anagrammar.py` --- The main program.
+`anagrammar.py` --- The main program. The core is a recursive function that
+implements Algorithm X.
 
 `dictbuilder.py` --- Converts a white-space delimited file of "words" to a 
 pickle of a dict where the keys are integers and the values are tuples of the
@@ -147,13 +150,14 @@ words that map to the key.
 `sloppytree.py` --- A general purpose data structure derived from Python's `dict` 
 that creates for a very flexible n-ary tree. 
 
-`urlogger.py` --- A wrapper around Python's `logging` module.
+`urlogger.py` --- A wrapper around Python's `logging` module that makes it quite
+a bit easier to use, or at least it is harder to make mistakes.
 
 ## What improvements can be made to Anagrammar's run time?
 
 Unfortunately for anagrams, exact cover problems are difficult to attack with
 parallel programming methods. There is no clear way to partition the options (words) into
-subspaces such that we can be assured that we do not omit covers (anagrams) that use
+subspaces (dictionaries) such that we can be assured that we do not omit covers (anagrams) that use
 options from multiple spaces.
 
 Of course, the space being covered grows rapidly as the phrase we are analyzing grows longer. 
