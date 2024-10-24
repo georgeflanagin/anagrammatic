@@ -32,9 +32,10 @@ iterators to the underlying data structure, and class of 2025 intern
 ## How does it work?
 
 Anagrams are an example of a *exact cover* problem, as described in Knuth's
-*Art of Computer Programming*, 
-[The Combinatorial Algorithms, Volume 4B](https://www.amazon.com/Art-Computer-Programming-Combinatorial-Information/dp/0201038064/), 
-pages 66 ff. An exact cover (alternatively: *perfect cover*) is a collection of non-empty,
+[*The Art of Computer Programming*, 
+Combinatorial Algorithms, Part 2](https://www.amazon.com/Art-Computer-Programming-Combinatorial-Information/dp/0201038064/), 
+pages 66 ff. This book is often referred to as simply "4B." 
+An exact cover (alternatively: *perfect cover*) is a collection of non-empty,
 disjoint sets whose union is the target set we are trying to "cover." 
 Knuth calls the subsets *options* and the elements of each option are
 *items*. Thus, no item occurs more than once in an option, and no
