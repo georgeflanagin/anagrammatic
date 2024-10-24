@@ -52,7 +52,7 @@ def piddly(s:str) -> str:
     multiprocessing programs by including the parent PID in the
     log message.
 
-    Example: 
+    Example:
 
         logger=URLogger()
         logger.info(piddly(msg))
@@ -72,7 +72,7 @@ class URLogger:
 
     Basic operation:
 
-    [1] At the global scope in the module containing your program's 
+    [1] At the global scope in the module containing your program's
         entry point (__main__), define the logger:
 
         logger = None
@@ -81,7 +81,7 @@ class URLogger:
 
         logger = URLogger(logfile='/path/to/logfile', level=30)
 
-        The levels are defined by symbols in Python's logging module. If 
+        The levels are defined by symbols in Python's logging module. If
         you do not supply logfile and level, the logfile is named "thisprog.log"
         in $PWD, and the level is set to logging.INFO.
 
@@ -90,7 +90,7 @@ class URLogger:
 
         logger.error("Something really bad has happened.")
 
-        The log rotation and formatting is taken care of behind the scene. 
+        The log rotation and formatting is taken care of behind the scene.
         The default format shows the time, the PID, the module, and the function that
             created the message.
 
@@ -104,7 +104,7 @@ class URLogger:
 
     __slots__ = {
         'logfile': 'the logfile associated with this object',
-        'formatter': 'format string for the logging records.', 
+        'formatter': 'format string for the logging records.',
         'level': 'level of the logging object',
         'rotator': 'using the built-in log rotation system',
         'thelogger': 'the logging object this class wraps'
@@ -126,10 +126,10 @@ class URLogger:
             setattr(self, k, v)
 
         # Override the defaults if needed.
-        for k, v in kwargs.items(): 
+        for k, v in kwargs.items():
             if k in URLogger.__slots__:
                 setattr(self, k, v)
-        
+
         try:
             if self.logfile is None:
                 self.logfile=os.path.join(os.getcwd(), "thisprog.log")
@@ -140,7 +140,7 @@ class URLogger:
             raise e from None
 
         self.rotator = RotatingFileHandler(self.logfile, maxBytes=1<<24, backupCount=2)
-            
+
         self.rotator.setLevel(self.level)
         self.rotator.setFormatter(self.formatter)
 
@@ -155,7 +155,7 @@ class URLogger:
     # logging functions as if the class member, self.thelogger,
     # were exposed. It is a little used "property" of Python that
     # the @property decorator can be used to return a function as
-    # well as the more common case of a data member. 
+    # well as the more common case of a data member.
     ###
     @property
     def debug(self) -> object:
@@ -182,15 +182,15 @@ class URLogger:
     # Tinker with the object model a little bit.
     ###
     def __str__(self) -> str:
-        """ 
-        return the name of the logfile. 
+        """
+        return the name of the logfile.
         """
         return self.logfile
 
 
     def __int__(self) -> int:
-        """ 
-        return the current level of logging. 
+        """
+        return the current level of logging.
         """
         return self.level
 
@@ -205,7 +205,7 @@ class URLogger:
         self.level = level
         self.rotator.setLevel(self.level)
         self.thelogger.setLevel(self.level)
-        return self 
+        return self
 
 
 if __name__ == '__main__':
@@ -213,11 +213,11 @@ if __name__ == '__main__':
     logger = URLogger(level=logging.DEBUG)
     print(f"{int(logger)=}")
 
-    logger.info('This is purely informational') 
+    logger.info('This is purely informational')
     logger.debug('This is a debug message.')
     logger.critical('This is *CRITICAL*')
     logger.error(piddly('This is an ERROR and includes the PPID'))
 
     with open(str(logger)) as f:
         { print(_) for _ in f.readlines() }
-    
+
