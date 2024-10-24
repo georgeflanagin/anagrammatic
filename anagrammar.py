@@ -160,9 +160,14 @@ def find_words(phrase_v:int,
 
             # Note that we are not checking the timeout every trip through
             # the loop --- just each new factor at the root level.
-            if not depth and time.time() - start_time > time_out:
-                sys.stderr.write(f"{time_out=} exceeded.\n")
-                sys.exit(os.EX_CONFIG)
+            if depth in (0, 1):
+                elapsed = round(time.time() - start_time, 3)
+                if elapsed > time_out:
+                    sys.stderr.write(f"{time_out=} exceeded.\n")
+                    sys.exit(os.EX_CONFIG)
+                else:
+                    sys.stderr.write(f"' '*40\r{elapsed} : {factor}\r")
+
 
             residual = phrase_v // factor
             if residual in factors: # Found one.
