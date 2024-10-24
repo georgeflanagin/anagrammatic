@@ -146,7 +146,7 @@ implements Algorithm X.
 pickle of a dict where the keys are integers and the values are tuples of the
 words that map to the key.
 
-`gkfdecorators.py` --- Contains the `@trap` decorator to assist with debugging.
+`urdecorators.py` --- Contains the `@trap` decorator to assist with debugging.
 
 `sloppytree.py` --- A general purpose data structure derived from Python's `dict` 
 that creates for a very flexible n-ary tree. 
