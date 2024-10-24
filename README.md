@@ -202,29 +202,37 @@ Windows is a BYODictionary experience.
 ### The help
 ```
 usage: anagrammar [-h] [-d DICTIONARY] [-m MIN_LEN]
-                  [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}] [-t CPU_TIME] [-v VERBOSE] [-z]
+                  [--nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}]
+                  [-t CPU_TIME] [-v VERBOSE] [-z]
                   phrase
 
 A brute force anagram finder.
 
 positional arguments:
-  phrase                The phrase. If it contains spaces, it must be in quotes.
+  phrase                The phrase. If it contains spaces, it must
+                        be in quotes.
 
 options:
   -h, --help            show this help message and exit
   -d DICTIONARY, --dictionary DICTIONARY
-                        Name of the dictionary of words, or a pickle of the dictionary.
+                        Name of the dictionary of words, or a pickle
+                        of the dictionary.
   -m MIN_LEN, --min-len MIN_LEN
-                        Minimum length of any word in the anagram. The default is 3.
+                        Minimum length of any word in the anagram.
+                        The default is 3.
   --nice {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}
-                        Niceness may affect execution time. The default is 7, which is about twice as nice as
-                        the average program.
+                        Niceness may affect execution time. The
+                        default is 7, which is about twice as nice
+                        as the average program.
   -t CPU_TIME, --cpu-time CPU_TIME
-                        Set a maximum number of CPU seconds for execution.
+                        Set a maximum number of CPU seconds for
+                        execution.
   -v VERBOSE, --verbose VERBOSE
-                        Set the logging level on a scale from 10 to 50. The default is 35, which only logs
+                        Set the logging level on a scale from 10 to
+                        50. The default is 35, which only logs
                         errors.
   -z, --zap             If set, remove old logfile[s].
+
 
 ```
 
