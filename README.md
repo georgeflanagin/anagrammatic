@@ -27,7 +27,7 @@ examples in the wild, I usually write my own.
 I take this moment to credit and thank my former intern
 [Alina Enikeeva](https://www.linkedin.com/in/alina-enikeeva) for adding several convenience 
 iterators to the underlying data structure, and class of 2025 intern
-[Skyler He](https://github.com/SkylerHe) for her **extensive** testing and development
+[Skyler He](https://www.linkedin.com/in/yingxinskylerhe/) for her **extensive** testing and development
 of test cases.
 
 ## How does it work?
