@@ -40,7 +40,7 @@ __license__ = 'MIT'
 ###
 # Globals.
 ###
-logger = None.
+logger = None
 
 ###
 # Just for curiosity, I wonder how long these things take.
@@ -54,10 +54,11 @@ start_time = time.time()
 # keep in mind that all the factors of the large composite numbers
 # are small, so the division goes quickly.
 ###
-primes26 = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 
+primes26 = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41,
     43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101 )
 primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
 
+@trap
 def word_value(word:str) -> int:
     return math.prod(primes[_] for _ in word)
 
@@ -89,19 +90,19 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
 
 
 @trap
-def find_words(phrase_v:int, 
-    factors:tuple, 
+def find_words(phrase_v:int,
+    factors:tuple,
     depth:int=0) -> SloppyTree:
     """
-    Our formula. This is a recursive function to discover the 
+    Our formula. This is a recursive function to discover the
     anagrams. It starts by considering the shortest possible word
     that could be a part of an anagram for the target phrase, and
-    progressively considers shorter keys. 
+    progressively considers shorter keys.
 
     phrase_v -- the word_value of the string we are finding anagrams for.
-        If it is not a large composite number (i.e., strictly greater than 
-        any of the factors), then it cannot be part of an anagram, and 
-        this is a dead-end. 
+        If it is not a large composite number (i.e., strictly greater than
+        any of the factors), then it cannot be part of an anagram, and
+        this is a dead-end.
 
     factors -- a tuple of integers that correspond to the potential
         components of the anagram.
@@ -121,10 +122,10 @@ def find_words(phrase_v:int,
     matches = SloppyTree()
     root = matches[phrase_v]
 
-    # Let's start with the smallest factor. 
+    # Let's start with the smallest factor.
     factors = tuple(sorted(prune_dict(phrase_v, factors)))
 
-    if not factors: 
+    if not factors:
         root = False
         return
 
@@ -137,26 +138,26 @@ def find_words(phrase_v:int,
             # Tree pruning takes place here in two steps.
             # At depth == 0, we add this factor to the list of seen factors,
             #   and set the current_root to the current factor.
-            if not depth: 
+            if not depth:
                 stats.roots += 1
                 seen_factors.add(factor)
                 current_root = factor
 
-            # at depth > 0, we consider whether we have already seen this 
+            # at depth > 0, we consider whether we have already seen this
             # factor at depth == 0 provided it is not the current root
-            # of this subtree. This guards against the case in which the 
-            # same factor might appear twice or more. 
+            # of this subtree. This guards against the case in which the
+            # same factor might appear twice or more.
             elif factor in seen_factors and factor - current_root:
                 stats.deadends += 1
                 continue
 
             # For clarity.
             else:
-                pass    
-    
-            # Note that we are not checking the timeout every trip through 
+                pass
+
+            # Note that we are not checking the timeout every trip through
             # the loop --- just each new factor at the root level.
-            if not depth and time.time() - start_time > time_out: 
+            if not depth and time.time() - start_time > time_out:
                 sys.stderr.write(f"{time_out=} exceeded.\n")
                 sys.exit(os.EX_CONFIG)
 
@@ -181,7 +182,7 @@ def find_words(phrase_v:int,
 
 
 @trap
-def prune_dict(filter:int, 
+def prune_dict(filter:int,
     candidates:tuple) -> tuple:
     """
     This is function just for clarity
@@ -215,10 +216,10 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
     original_phrase = "".join(original_words)
     original_phrase_value = word_value(original_phrase)
-    
+
     # smallest_word is a little bit of a misnomer. It is the word
     # with the lowest possible numeric value. Let's initialize
-    # it as the product of the first n primes, where n is the 
+    # it as the product of the first n primes, where n is the
     # min_len of the words we are considering.
     min_len  = myargs.min_len
     for i in range(min_len): smallest_word *= primes26[i]
@@ -231,17 +232,17 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # The only words we need to consider are the ones that divide
     # the target phrase evenly. This operation greatly reduces
     # the size of the dictionary.
-    words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and 
+    words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and
         original_phrase_value % k == 0}
     smallest_word = min(words) if words else 0
     largest_word = max(words) if words else 0
 
-    logger.info(f"Initial pruning for {original_phrase_value=} {len(words)=}") 
+    logger.info(f"Initial pruning for {original_phrase_value=} {len(words)=}")
     logger.debug(f"{smallest_word=}")
     logger.debug(f"{largest_word=}")
 
     # Let's reduce the complexities of dragging around the dictionary, and
-    # just leave it here for later review. We'll figure out which words 
+    # just leave it here for later review. We'll figure out which words
     # correspond to the factors when we return with the anagrams.
     anagrams = SloppyTree()
     try:
@@ -249,7 +250,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     except KeyboardInterrupt as e:
         print("You pressed control C")
-        sys.exit(os.EX_OK) 
+        sys.exit(os.EX_OK)
 
     except Exception as e:
         raise
@@ -266,7 +267,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     for i, ngram in enumerate(sorted(list(numeric_anagrams))):
         text_gram = tuple(words.get(_) for _ in ngram)
 
-    text_anagrams = sorted([ tuple(words.get(_) for _ in ngram) 
+    text_anagrams = sorted([ tuple(words.get(_) for _ in ngram)
         for ngram in sorted(list(numeric_anagrams)) ])
 
     for line in text_anagrams:
@@ -284,7 +285,7 @@ if __name__ == "__main__":
     logfile     = f"{vm_callable}.log"
     main        = f"{vm_callable}_main"
 
-    parser = argparse.ArgumentParser(prog="anagrammar", 
+    parser = argparse.ArgumentParser(prog="anagrammar",
         description="A brute force anagram finder.")
 
     parser.add_argument('-d', '--dictionary', type=str, default="words",
@@ -297,7 +298,7 @@ if __name__ == "__main__":
         help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('-v', '--verbose', type=int, default=35,
         help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}. The default is 35, which only logs errors.")
-    parser.add_argument('-z', '--zap', action='store_true', 
+    parser.add_argument('-z', '--zap', action='store_true',
         help="If set, remove old logfile[s].")
 
     parser.add_argument('phrase', type=str,
@@ -309,7 +310,7 @@ if __name__ == "__main__":
             os.unlink(logfile)
         except:
             pass
-    logger = urlogger.URLogger(logfile=logfile, level=myargs.verbose)    
+    logger = urlogger.URLogger(logfile=logfile, level=myargs.verbose)
     logger.info(dump_cmdline(myargs))
 
     sys.exit(globals()[main](myargs))

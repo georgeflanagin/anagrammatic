@@ -39,10 +39,10 @@ else:
 # The alphabet order is not relevant to the algorithm. This order
 # was chosen to reduce the magnitude of the numbers slightly.
 ###
-primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", (2, 3, 5, 7, 11, 
-    13, 17, 19, 23, 29, 
-    31, 37, 41, 43, 47, 
-    53, 59, 61, 67, 71, 
+primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", (2, 3, 5, 7, 11,
+    13, 17, 19, 23, 29,
+    31, 37, 41, 43, 47,
+    53, 59, 61, 67, 71,
     73, 79, 83, 89, 97,
     101 )))
 
@@ -200,7 +200,7 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
 def dictbuilder(myargs:argparse.Namespace) -> int:
     """
     Transform the usual layout system dictionary into a picked
-    version of the same. 
+    version of the same.
 
     infile  -- the file we read.
     outfile -- the results. This is a stem-name to which we will
@@ -210,7 +210,7 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
 
         "propernouns" -- if True, do not discard capitalized words,
             and if a string, assume it is the name of a dictionary
-            of proper nouns to be added. 
+            of proper nouns to be added.
 
     returns -- a value from the os.EX_ family of return codes.
 
@@ -231,7 +231,7 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     if not myargs.bare:
         # Let's use /our/ three and two letter words, Knuth's
         # five letter words, and the Scrabble dictionary's four letter words.
-        # There is always a possibility that either the four or five 
+        # There is always a possibility that either the four or five
         # letter word files will have been deleted, so we will forgive
         # any absences.
         data = [ _ for _ in data if len(_) > 5 ]
@@ -251,7 +251,7 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
 
 
         print("Adding short words from internal lists.")
-        data.extend(three_letter_words) 
+        data.extend(three_letter_words)
         data.extend(two_letter_words)
         data.extend(('a', 'i'))
         print(f"{len(data)} words ready for filtering.")
@@ -265,7 +265,7 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
         sys.stderr.write("removing proper nouns\n")
         data = [ _ for _ in data if _.islower() ]
         print(f"{len(data)} words remain after removing proper nouns.")
-    
+
         with open(myargs.propernouns) as f:
             nouns = set(f.read().lower().split())
         data = set(data) - nouns
@@ -275,7 +275,7 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     # Now we start creating our data structures. Always leave out
     # words with embedded punctuation and numerals.
     ###
-    filtered_data = {k.lower(): "".join(sorted(k.lower())) 
+    filtered_data = {k.lower(): "".join(sorted(k.lower()))
         for k in data if k.isalpha() }
     print(f"{len(filtered_data)} words remain after isalpha() filtering.")
 
@@ -307,7 +307,7 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
 
 
     return len(words)
-        
+
 
 def dictloader(filename:str) -> dict:
     """
@@ -317,7 +317,7 @@ def dictloader(filename:str) -> dict:
 
     returns -- forward, reversed
     """
-    if filename.endswith('.'): filename = filename[:-1]
+    filename = filename.split('.')[0]
 
     with open(f"{filename}.numbers", 'rb') as f:
         numeric_dict = pickle.load(f)
@@ -327,13 +327,13 @@ def dictloader(filename:str) -> dict:
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(prog="dictbuilder", 
+    parser = argparse.ArgumentParser(prog="dictbuilder",
         description="A program to maintain dictionaries used in anagrammar.")
 
     parser.add_argument('-b', '--bare', action='store_true',
         help="Use only the words in the input dictionary rather than the built-in 2, 3, 4, and 5 letter words.")
-    parser.add_argument('-i', '--input', type=str, 
-        required=True, help="The name[s] of the input dictionaries.") 
+    parser.add_argument('-i', '--input', type=str,
+        required=True, help="The name[s] of the input dictionaries.")
     parser.add_argument('-n', '--propernouns', type=str, default=None,
         help="If used, exclude the words found in the file (presumed to be proper nouns)")
     parser.add_argument('outfile', type=str,
