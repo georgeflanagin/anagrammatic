@@ -97,7 +97,7 @@ def find_words(phrase_v:int,
     Our formula. This is a recursive function to discover the
     anagrams. It starts by considering the shortest possible word
     that could be a part of an anagram for the target phrase, and
-    progressively considers shorter keys.
+    progressively considers shorter residuals.
 
     phrase_v -- the word_value of the string we are finding anagrams for.
         If it is not a large composite number (i.e., strictly greater than
@@ -138,7 +138,8 @@ def find_words(phrase_v:int,
             # Tree pruning takes place here in two steps.
             # At depth == 0, we add this factor to the list of seen factors,
             #   and set the current_root to the current factor.
-            if not depth:
+            # if not depth:
+            if depth in (0, 1):
                 stats.roots += 1
                 logger.debug(f"root {factor=}")
                 seen_factors.add(factor)
