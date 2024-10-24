@@ -60,7 +60,7 @@ The approach taken in this program is a modified implementation of
 Knuth's *Algorithm X*, described in detail in 
 [this 2000 paper](https://www.ocf.berkeley.edu/~jchu/publicportal/sudoku/0011047.pdf), and
 in summary form in the [Wikipedia article](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X).
-Algorithm X is a part of what is known as *backtracking*, an important class of algorithms
+Algorithm X is a part of *backtracking*, an important class of algorithms
 that are summarized [here](https://en.wikipedia.org/wiki/Backtracking).
 
 Anagrammar's approach is straightforward exploitation of Algorithm X: 
