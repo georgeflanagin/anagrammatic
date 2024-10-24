@@ -66,19 +66,19 @@ that are summarized [here](https://en.wikipedia.org/wiki/Backtracking).
 Anagrammar's approach is straightforward exploitation of Algorithm X: 
 each option (word) we examine is removed 
 as we go, and we are left with a smaller exact cover problem. If we 
-are eventually left with a null set, then we have found a cover (anagram). 
+are eventually left with a null set, then we have found an exact cover (anagram). 
 The options are construed to be words in some dictionary, and if 
 our residual (Knuth's term for the remainder) cannot be spanned by the remaining options, then this
 branch was a dead end, and we go back to consider other options.
 
-I borrowed the lowest level representation from Martin Schweitzer (@martinschweitzer on github) by
+I borrowed the lowest level representation from Martin Schweitzer (@martinschweitzer) by
 assigning the letters of the alphabet to the 26 smallest prime numbers. This 
 legerdemain eliminated the string
 operations, and the entire analysis is reduced to integer arithmetic --- something that
 computers are known to be good at. If 
 the approach is unfamiliar, no more than five minutes spent reviewing [the fundamental 
 theorem of arithmetic](https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic) 
-will clear it up for you. 
+will clear it up. 
 
 In the `anagrammar.py` file, the mapping is represented this way:
 
@@ -89,10 +89,10 @@ primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
 ```
 
 The ordering of the letters in alignment with the frequency of letters in
-English reduces the magnitude of the composite numbers that represent the
+English reduces the magnitude of the composite numbers that represent
 options, although experience has shown that because the factors of the 
 large composite numbers are comparatively small, the `divmod` operation goes 
-quickly. For example, our test phrase (`embrace inclusivity`) evaluates to
+quickly even with a less optimized mapping. For example, our test phrase (`embrace inclusivity`) evaluates to
 **695823563878969513260**, which is greater than **2**<sup>69</sup>, whereas a word
 like `race` which might be a component of an anagram evaluate to only **870**,
 not even **2**<sup>10</sup>. 
@@ -106,8 +106,8 @@ exactly *once* in any dictionary.
 A note to those of you who may modify the code --- if you change the above mapping
 between primes and letters, you will need to rebuild your dictionaries. An obvious,
 but not yet implemented improvement to this program would be packaging the 
-dictionary as two pickles, the second one including the mapping that was 
-used to create it.
+dictionary as two pickles, the second one defining the mapping that was 
+used to create it. Something for the next version ....
 
 Of course, anagrams differ from the basic perfect cover problem in 
 other material ways. The first is that we are not looking for just
@@ -173,9 +173,9 @@ and every letter in the alphabet is present.
 Anagrammar does some pruning with its backtracking, identifying dead ends
 as it goes. Thus, no [terminal](https://en.wikipedia.org/wiki/Terminal_and_nonterminal_symbols) 
 is evaluated more than once. Of course, constantly searching an ever growing pile of 
-dead ends adds overhead. This is called [memoization](https://en.wikipedia.org/wiki/Memoization). 
+dead ends adds *some* overhead. This is called [memoization](https://en.wikipedia.org/wiki/Memoization). 
 
-**NB** *The explanation conflates the length of words with the value of integer to which
+**NB** *The following explanation conflates the length of words with the value of integer to which
 the words are mapped. Hopefully, the explanation is still clear.*
 
 The most important pruning technique is this one. Suppose we are looking for 
@@ -187,7 +187,7 @@ involving `age` have already been found when we used `age` as the starting point
 ## What do you need to run it?
 
 *A standard distro of Python.* This program does not use external
-libraries, and the source is cut into a few files simply to give
+libraries like `numpy`, and the source is cut into a few files simply to give
 it a straightforward organization.
 
 *A dictionary.* If you do not like the provided dictionaries (taken from the
