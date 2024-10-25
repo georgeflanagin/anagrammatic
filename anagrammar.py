@@ -54,9 +54,7 @@ start_time = time.time()
 # keep in mind that all the factors of the large composite numbers
 # are small, so the division goes quickly.
 ###
-primes26 = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41,
-    43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101 )
-primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", primes26))
+primes = {}
 
 @trap
 def word_value(word:str) -> int:
@@ -212,6 +210,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     returns -- an int from os.EX_*
     """
+    global primes
     global tries
     global time_out
     global topline
@@ -220,6 +219,11 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     # If we have been given a limit on CPU, set it.
     time_out = myargs.cpu_time
+
+    # We cannot work without a dictionary, so let's get it first.
+    words, primes = dictloader(myargs.dictionary)
+    logger.info(f"Dictionary of {len(words)} words.")
+    logger.info(f"{primes=}")
 
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
@@ -235,13 +239,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # it as the product of the first n primes, where n is the
     # min_len of the words we are considering.
     min_len  = myargs.min_len
-    for i in range(min_len): smallest_word *= primes26[i]
 
     logger.info(f"{myargs.phrase=}")
-    # We cannot work without a dictionary, so let's get it first.
-    words= dictloader(myargs.dictionary)
-    logger.info(f"Dictionary of {len(words)} words.")
-
     # The only words we need to consider are the ones that divide
     # the target phrase evenly. This operation greatly reduces
     # the size of the dictionary.
