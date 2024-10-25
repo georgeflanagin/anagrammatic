@@ -92,10 +92,10 @@ def find_words(phrase_v:int,
     factors:tuple,
     depth:int=0) -> SloppyTree:
     """
-    Our formula. This is a recursive function to discover the
-    anagrams. It starts by considering the shortest possible word
-    that could be a part of an anagram for the target phrase, and
-    progressively considers shorter residuals.
+    This is a recursive function to discover the anagrams. It starts by
+    considering the shortest possible word that could be a part of an
+    anagram for the target phrase, and progressively considers shorter
+    residuals.
 
     phrase_v -- the word_value of the string we are finding anagrams for.
         If it is not a large composite number (i.e., strictly greater than
@@ -181,7 +181,10 @@ def find_words(phrase_v:int,
 
             else: # We don't yet know.
                 logger.debug(f"recursing with {residual}")
-                if (t := find_words(residual, tuple(_ for _ in factors if _ < residual), depth+1)):
+                if (t := find_words(residual,
+                        tuple(_ for _ in factors if _ < residual),
+                        depth+1)):
+
                     root[factor] = t
 
     except Exception as e:
