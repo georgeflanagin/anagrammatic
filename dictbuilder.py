@@ -14,7 +14,7 @@ import pickle
 import pprint
 import time
 
-from   gkfdecorators import show_exceptions_and_frames as trap
+from   urdecorators import trap
 
 # Credits
 __author__ = 'George Flanagin'
@@ -35,19 +35,14 @@ elif this_os == 'Darwin':
 else:
     default_word_list = './words'
 
-###
-# The alphabet order is not relevant to the algorithm. This order
-# was chosen to reduce the magnitude of the numbers slightly.
-###
-primes = dict(zip("eariotnslcudpmhgbfywkvxzjq", (2, 3, 5, 7, 11,
-    13, 17, 19, 23, 29,
-    31, 37, 41, 43, 47,
-    53, 59, 61, 67, 71,
-    73, 79, 83, 89, 97,
-    101 )))
+primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41,
+    43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101 )
 
+letter_map = {}
+
+@trap
 def word_value(word:str) -> int:
-    return math.prod(primes[_] for _ in word)
+    return math.prod(letter_map[_] for _ in word)
 
 one_letter_words = frozenset({'a', 'i'})
 
@@ -202,7 +197,6 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     Transform the usual layout system dictionary into a picked
     version of the same.
 
-    infile  -- the file we read.
     outfile -- the results. This is a stem-name to which we will
         append '.forward' and '.reversed'
     kwargs  -- options that control what dictionary words are
@@ -218,14 +212,12 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     particularly efficient because it is only executed once.
     """
 
+    global letter_map
     global two_letter_words
     global three_letter_words
 
-    data = []
-    infile = myargs.input
-    with open(infile) as in_f:
-        data.extend(in_f.read().split())
-    sys.stderr.write(f"{len(data)} words read from {infile}.\n")
+    data = set(read_whitespace_file(myargs.input))
+    sys.stderr.write(f"{len(data)} words read from {myargs.input}.\n")
 
 
     if not myargs.bare:
@@ -234,51 +226,31 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
         # There is always a possibility that either the four or five
         # letter word files will have been deleted, so we will forgive
         # any absences.
-        data = [ _ for _ in data if len(_) > 5 ]
+        data = set( _ for _ in data if len(_) > 5 )
         try:
-            with open('./knuths.5757.five.letter.words.txt') as in_f:
-                five_letter_words = in_f.read().split()
-            data.extend(five_letter_words)
+            data.update(read_whitespace_file('./knuths.5757.five.letter.words.txt'))
         except:
             pass
 
         try:
-            with open('./four.letter.words') as in_f:
-                four_letter_words = in_f.read().split()
-            data.extend(four_letter_words)
+            data.update(read_whitespace_file('./four.letter.words'))
         except:
             pass
 
 
         print("Adding short words from internal lists.")
-        data.extend(three_letter_words)
-        data.extend(two_letter_words)
-        data.extend(('a', 'i'))
-        print(f"{len(data)} words ready for filtering.")
+        data.update(three_letter_words)
+        data.update(two_letter_words)
+        data.update(('a', 'i'))
 
-    ###
-    # Apply filters
-    ###
-    if myargs.propernouns:
-        # First remove the capitalized words from what we have
-        # already read in.
-        sys.stderr.write("removing proper nouns\n")
-        data = [ _ for _ in data if _.islower() ]
-        print(f"{len(data)} words remain after removing proper nouns.")
-
-        with open(myargs.propernouns) as f:
-            nouns = set(f.read().lower().split())
-        data = set(data) - nouns
+    # Remove any "words" that are not all alpha and make everything
+    # lower case.
+    data = set( _.lower() for _ in data if _.isalpha() )
 
 
     ###
     # Now we start creating our data structures. Always leave out
     # words with embedded punctuation and numerals.
-    ###
-    filtered_data = {k.lower(): "".join(sorted(k.lower()))
-        for k in data if k.isalpha() }
-    print(f"{len(filtered_data)} words remain after isalpha() filtering.")
-
     ###
     # Our collection of words has integer keys that correspond to
     # a composite number that represents the values of each letter
@@ -291,8 +263,10 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     #
     # { 6710 : ('care', 'race', 'acre') }
     ###
+    letter_map = make_mapping(data)
+
     words = collections.defaultdict(list)
-    for word in filtered_data:
+    for word in data:
         words[word_value(word)].append(word)
 
     words = {k:tuple(v) for k, v in words.items()}
@@ -300,30 +274,64 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
 
     with open(f"{myargs.outfile}.numbers", 'wb') as out:
         pickle.dump(words, out)
-        sys.stderr.write("forward dict pickled and written\n")
+        pickle.dump(letter_map, out)
+        sys.stderr.write("dictionary pickled\n")
 
     with open(f"{myargs.outfile}.txt", 'w') as out:
         out.write(pprint.pformat(words))
 
-
     return len(words)
 
 
-def dictloader(filename:str) -> dict:
+@trap
+def dictloader(filename:str) -> tuple:
     """
-    read the pickled dictionaries from files whose name
-    matches the argument, and with .numbers appended to
-    the name.
+    return the pickles of the dict and the map of
+    letters to values.
 
-    returns -- forward, reversed
+    returns --
     """
     filename = filename.split('.')[0]
 
     with open(f"{filename}.numbers", 'rb') as f:
         numeric_dict = pickle.load(f)
+        mapping = pickle.load(f)
 
-    return numeric_dict
+    return numeric_dict, mapping
 
+
+@trap
+def make_mapping(data:set) -> dict:
+    """
+    This function makes an optimal map of letters to prime
+    numbers based on the actual frequency of the letters in
+    the argument.
+    """
+    global primes
+    freq = collections.Counter(_ for w in data for _ in w)
+    ordering = tuple( _[0] for _ in freq.most_common(26))
+    return dict(zip(ordering, primes))
+
+
+@trap
+def read_whitespace_file(filename:str, *, comment_char:str=None) -> tuple:
+    """
+    This is a generator that returns the whitespace delimited tokens
+    in a text file, one token at a time.
+    """
+    if not filename: return tuple()
+
+    if not os.path.isfile(filename):
+        sys.stderr.write(f"{filename} cannot be found.")
+        return os.EX_NOINPUT
+
+    with open(filename) as f:
+        if comment_char is None:
+            yield from (" ".join(f.read().split('\n'))).split()
+
+        else:
+            lines = f.readlines()
+            yield from (token for l in lines if not l.strip().startswith(comment_char) for token in l.split())
 
 if __name__ == '__main__':
 
