@@ -280,7 +280,7 @@ def dictbuilder(myargs:argparse.Namespace) -> int:
     with open(f"{myargs.outfile}.txt", 'w') as out:
         out.write(pprint.pformat(words))
 
-    return len(words)
+    return os.EX_OK
 
 
 @trap
