@@ -166,7 +166,9 @@ def find_words(phrase_v:int,
                     sys.stderr.write(f"{time_out=} exceeded.\n")
                     sys.exit(os.EX_CONFIG)
                 else:
-                    sys.stderr.write(f"' '*40\r{elapsed} : {factor}\r")
+                    sys.stderr.write(' ' * 40)
+                    sys.stderr.write('\r')
+                    sys.stderr.write(f"{elapsed} : {factor}\r")
 
 
             residual = phrase_v // factor
