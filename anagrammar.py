@@ -10,6 +10,7 @@ import os
 import sys
 
 import argparse
+import itertools
 import logging
 import math
 import multiprocessing
@@ -48,30 +49,40 @@ logger = None
 start_time = time.time()
 
 ###
-# The alphabet order is not relevant to the algorithm. This order
-# was chosen to reduce the magnitude of the numbers slightly. In
-# one 14 letter phrase, the reduction was from 60 bits to 50 bits.
-# keep in mind that all the factors of the large composite numbers
-# are small, so the division goes quickly.
+# These globals contain the mapping of prime numbers to letters
+# in the alphabet, and the mapping of composite numbers to
+# a tuple of words from the dictionary that map to the composite
+# number.
 ###
-primes = {}
+prime_map = {}
+words={}
 
 @trap
 def word_value(word:str) -> int:
-    return math.prod(primes[_] for _ in word)
+    return math.prod(prime_map[_] for _ in word)
 
+# Continuously updated to reflect the value of the root
+# of the current branch of the tree we are evaluating.
 current_root = 1
-seen_factors = set()
+
+# A collection of previously evaluated roots.
+seen_roots = set()
+
+# The word of least value in the dictionary.
 smallest_word = 1
+
+# See if we have run long enough to quit.
 time_out = 0
-words={}
+
+# Dead ends are words (numbers) that cannot be a part
+# of this anagram.
+dead_ends = set()
 
 stats = SloppyTree()
 stats.tries = 0       # number of edges considered.
-stats.deadends = 0    # number of dead edges.
-stats.grams = 0       # number of anagrams found.
-stats.roots = 0       # number of level 0 edges.
-
+stats.nodes = 0       # number of level 0 edges.
+stats.factors = 0
+stats.dead_ends = 0
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -94,8 +105,8 @@ def find_words(phrase_v:int,
     """
     This is a recursive function to discover the anagrams. It starts by
     considering the shortest possible word that could be a part of an
-    anagram for the target phrase, and progressively considers shorter
-    residuals.
+    anagram for the target phrase, and progressively applies the same
+    logic to shorter residuals.
 
     phrase_v -- the word_value of the string we are finding anagrams for.
         If it is not a large composite number (i.e., strictly greater than
@@ -111,24 +122,39 @@ def find_words(phrase_v:int,
         then this is a dead-end, and the parent of the leaf
         cannot be a part of an anagram.
     """
-    global stats
     logger.debug(f"{depth=} , {phrase_v=}")
-    global smallest_word
-    global seen_factors
     global current_root
+    global dead_ends
+    global seen_roots
+    global smallest_word
+    global stats
 
+    # This will be our return value.
     matches = SloppyTree()
     root = matches[phrase_v]
 
     # Let's start with the smallest factor.
     factors = tuple(sorted(prune_dict(phrase_v, factors)))
 
+    # Not sure what we are doing in this function, but this
+    # test prevents strange things happening if we get here
+    # by mistake.
     if not factors:
         root = False
         return
 
     smallest_factor = factors[0]
 
+    # First, test to see if there can be any further factoring
+    # to do.
+    if phrase_v in dead_ends:
+        return matches
+
+    if smallest_factor*smallest_factor > phrase_v:
+        dead_ends.add(phrase_v)
+        return matches
+
+    # There may be something here. Let's look.
     try:
         for factor in factors:
             stats.tries += 1
@@ -138,18 +164,18 @@ def find_words(phrase_v:int,
             #   and set the current_root to the current factor.
             # if not depth:
             if depth in (0, 1):
-                stats.roots += 1
+                stats.nodes += 1
                 logger.debug(f"root {factor=}")
-                seen_factors.add(factor)
+                seen_roots.add(factor)
                 current_root = factor
 
-            # at depth > 0, we consider whether we have already seen this
-            # factor at depth == 0 provided it is not the current root
+            # We consider whether we have already seen this
+            # factor at a lower depth, provided it is not the current root
             # of this subtree. This guards against the case in which the
-            # same factor might appear twice or more.
-            elif factor in seen_factors and factor - current_root:
+            # same factor might appear twice or more in a word
+            # like "cancan."
+            elif factor in seen_roots and factor - current_root:
                 logger.debug(f"skipping {factor}")
-                stats.deadends += 1
                 continue
 
             # For clarity.
@@ -166,18 +192,17 @@ def find_words(phrase_v:int,
                 else:
                     sys.stderr.write(' ' * 40)
                     sys.stderr.write('\r')
-                    sys.stderr.write(f"{elapsed} : {factor}\r")
+                    sys.stderr.write(f"{elapsed} : {len(seen_roots)}\r")
 
 
             residual = phrase_v // factor
             if residual in factors: # Found one.
                 logger.debug(f"found terminal: {residual}")
                 root[factor] = residual
-                stats.grams += 1
 
             elif residual < smallest_factor: # This is a dead-end.
                 logger.debug(f"deadend: {residual}")
-                stats.deadends += 1
+                dead_ends.add(residual)
 
             else: # We don't yet know.
                 logger.debug(f"recursing with {residual}")
@@ -213,7 +238,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     returns -- an int from os.EX_*
     """
-    global primes
+    global prime_map
     global tries
     global time_out
     global topline
@@ -224,9 +249,9 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     time_out = myargs.cpu_time
 
     # We cannot work without a dictionary, so let's get it first.
-    words, primes = dictloader(myargs.dictionary)
+    words, prime_map = dictloader(myargs.dictionary)
     logger.info(f"Dictionary of {len(words)} words.")
-    logger.info(f"{primes=}")
+    logger.info(f"{prime_map=}")
 
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
@@ -249,6 +274,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # the size of the dictionary.
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and
         original_phrase_value % k == 0}
+    stats.factors = len(words)
     smallest_word = min(words) if words else 0
     largest_word = max(words) if words else 0
 
@@ -261,34 +287,61 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # correspond to the factors when we return with the anagrams.
     anagrams = SloppyTree()
     try:
-        anagrams[original_phrase_value] = find_words(original_phrase_value, tuple(words.keys()))
+        anagrams[original_phrase_value] = find_words(original_phrase_value,
+                                                    tuple(sorted(words.keys())))
 
     except KeyboardInterrupt as e:
         print("You pressed control C")
         sys.exit(os.EX_OK)
 
     except Exception as e:
-        raise
+        logger.error(f"Unexpected exception {e=}")
+        raise e from None
 
     finally:
-        logger.info(f"{anagrams=}")
+        logger.debug(f"1 {anagrams=}")
 
+    stats.dead_ends = len(dead_ends)
 
-    numeric_anagrams = set()
-    for j, combo in enumerate(anagrams.tree_as_table()):
-        if None not in combo:
-            numeric_anagrams.add(tuple(sorted(combo, reverse=True)[1:]))
+    ###
+    # The anagrams are now in a tree whose root node is our
+    # original phrase, and whose branches represent the anagrams.
+    # Each path to a leaf is an anagram.
+    #
+    # SloppyTree.tree_as_table() returns each path as a tuple.
+    # We need to sort each path so that we eliminate unintended
+    # duplicates of the forms (a,b,c) and (a,c,b), and then
+    # sort the sorted tuples.
+    #
+    # Explanation of the next line:
+    #   We don't care to have each anagram start with the original phrase,
+    #   so chop it off with the [1:] slice.
+    ###
+    anagrams = [ sorted(_)[:-1] for _ in anagrams.tree_as_table() ]
+    logger.debug(f"2 {anagrams=}")
 
-    for i, ngram in enumerate(sorted(list(numeric_anagrams))):
-        text_gram = tuple(words.get(_) for _ in ngram)
+    ###
+    # Use groupby to remove duplicates from the (already) now sorted list
+    # of anagrams.
+    ###
+    anagrams = [ list(_)[0] for k, _ in itertools.groupby(sorted(anagrams)) ]
+    logger.debug(f"3 {anagrams=}")
 
-    text_anagrams = sorted([ tuple(words.get(_) for _ in ngram)
-        for ngram in sorted(list(numeric_anagrams)) ])
+    ###
+    # Now replace the numbers with the corresponding words
+    # from the dictionary. Note that words.get() will return
+    # None if this path is a dead-end.
+    ###
+    text_anagrams = []
+    for gram in anagrams:
+        text_gram = [ words.get(_) for _ in gram ]
+        if None in text_gram: continue
+        text_anagrams.append(text_gram)
 
-    for line in text_anagrams:
-        print(line)
+    for i, line in enumerate(text_anagrams):
+        if None in line: continue
+        print(f"{i} :: {line}")
 
-    print(f"Tree had {j+1} paths; {i+1} distinct.")
     print(f"{stats=}")
 
     return sys.exit(os.EX_OK)
@@ -299,6 +352,7 @@ if __name__ == "__main__":
     vm_callable = f"{os.path.basename(__file__)[:-3]}"
     logfile     = f"{vm_callable}.log"
     main        = f"{vm_callable}_main"
+    configfile  = f"{vm_callable}.toml"
 
     parser = argparse.ArgumentParser(prog="anagrammar",
         description="A brute force anagram finder.")
@@ -325,6 +379,13 @@ if __name__ == "__main__":
             os.unlink(logfile)
         except:
             pass
+
+    try:
+        with open(configfile, 'rb') as f:
+            config=tomllib.load(f)
+    except FileNotFoundError as e:
+        config={}
+
     logger = urlogger.URLogger(logfile=logfile, level=myargs.verbose)
     logger.info(dump_cmdline(myargs))
 
