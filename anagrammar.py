@@ -98,6 +98,7 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     return opt_string if return_it else ""
 
 
+num_calls = 0
 @trap
 def find_words(phrase_v:int,
     factors:tuple,
@@ -122,6 +123,8 @@ def find_words(phrase_v:int,
         then this is a dead-end, and the parent of the leaf
         cannot be a part of an anagram.
     """
+    global num_calls
+    num_calls += 1
     logger.debug(f"{depth=} , {phrase_v=}")
     global current_root
     global dead_ends
@@ -192,7 +195,7 @@ def find_words(phrase_v:int,
                 else:
                     sys.stderr.write(' ' * 40)
                     sys.stderr.write('\r')
-                    sys.stderr.write(f"{elapsed} : {len(seen_roots)}\r")
+                    sys.stderr.write(f"{elapsed} : {num_calls}\r")
 
 
             residual = phrase_v // factor
