@@ -25,9 +25,10 @@ approximate, to classic computer science problems. Because it is difficult to fi
 examples in the wild, I usually write my own. 
 
 I take this moment to credit and thank my former intern
-[Alina Enikeeva](https://www.linkedin.com/in/alina-enikeeva) for adding several convenience 
+[Alina Enikeeva](https://www.linkedin.com/in/alina-enikeeva), now a consulting engineer with 
+[RTS Labs](https://rtslabs.com/) for adding convenience 
 iterators to the underlying tree data structure, and class of 2025 intern
-[Skyler He](https://www.linkedin.com/in/yingxinskylerhe/) for her **extensive** testing and development
+[Skyler He](https://www.linkedin.com/in/yingxinskylerhe/) for her **extensive** proofreading of the code and development
 of test cases.
 
 ## How does it work?
