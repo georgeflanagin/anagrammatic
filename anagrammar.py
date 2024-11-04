@@ -163,7 +163,7 @@ def find_words(phrase_v:int,
             stats.tries += 1
 
             # Tree pruning takes place here in two steps.
-            # At depth == 0, we add this factor to the list of seen factors,
+            # At depth == 1, we add this factor to the list of seen factors,
             #   and set the current_root to the current factor.
             # if not depth:
             if depth in (0, 1):
@@ -172,11 +172,13 @@ def find_words(phrase_v:int,
                 seen_roots.add(factor)
                 current_root = factor
 
+            ###
             # We consider whether we have already seen this
-            # factor at a lower depth, provided it is not the current root
+            # factor at a lower depth *provided* it is not the current root
             # of this subtree. This guards against the case in which the
             # same factor might appear twice or more in a word
             # like "cancan."
+            ###
             elif factor in seen_roots and factor - current_root:
                 logger.debug(f"skipping {factor}")
                 continue
@@ -190,12 +192,12 @@ def find_words(phrase_v:int,
             if depth in (0, 1):
                 elapsed = round(time.time() - start_time, 3)
                 if elapsed > time_out:
-                    sys.stderr.write(f"{time_out=} exceeded.\n")
+                    sys.stderr.write(f"\n{time_out=} exceeded.\n")
                     sys.exit(os.EX_CONFIG)
                 else:
                     sys.stderr.write(' ' * 40)
                     sys.stderr.write('\r')
-                    sys.stderr.write(f"{elapsed} : {num_calls}\r")
+                    sys.stderr.write(f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:10}\r")
 
 
             residual = phrase_v // factor
@@ -261,27 +263,31 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # of what it was.
     os.nice(myargs.nice)
 
-    original_words = [ _ for _ in myargs.phrase.lower() if _ in string.ascii_lowercase ]
-    original_phrase = "".join(original_words)
+    # Squish out the white space.
+    logger.info(f"{myargs.phrase=}")
+    text = "".join(myargs.phrase.lower().split())
+    # Keep only the letters.
+    original_phrase = "".join(_ for _ in text if _ in string.ascii_lowercase)
+    # And take note of the integer to which the phrase corresponds.
     original_phrase_value = word_value(original_phrase)
 
-    # smallest_word is a little bit of a misnomer. It is the word
-    # with the lowest possible numeric value. Let's initialize
-    # it as the product of the first n primes, where n is the
-    # min_len of the words we are considering.
     min_len  = myargs.min_len
 
-    logger.info(f"{myargs.phrase=}")
     # The only words we need to consider are the ones that divide
     # the target phrase evenly. This operation greatly reduces
     # the size of the dictionary.
+    logger.info(f"Loaded dict has {len(words)} words.")
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and
         original_phrase_value % k == 0}
     stats.factors = len(words)
-    smallest_word = min(words) if words else 0
-    largest_word = max(words) if words else 0
+    logger.info(f"Dict reduced to {stats.factors} possible words.")
+    if not stats.factors:
+        logger.error("None of the dict words will work.")
+        return os.EX_DATAERR
 
-    logger.info(f"Initial pruning for {original_phrase_value=} {len(words)=}")
+    smallest_word = min(words)
+    largest_word = max(words)
+
     logger.debug(f"{smallest_word=}")
     logger.debug(f"{largest_word=}")
 
@@ -290,6 +296,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # correspond to the factors when we return with the anagrams.
     anagrams = SloppyTree()
     try:
+        sys.stderr.write("Words      Time      Nodes \n\n")
         anagrams[original_phrase_value] = find_words(original_phrase_value,
                                                     tuple(sorted(words.keys())))
 
@@ -344,6 +351,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     for i, line in enumerate(text_anagrams):
         if None in line: continue
         print(f"{i} :: {line}")
+    logger.info(f"{i} anagrams found.")
 
     print(f"{stats=}")
 
