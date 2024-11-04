@@ -106,11 +106,10 @@ corpus of English. We
 need not concern ourselves with how *common* a word is, only that it appears
 exactly *once* in any single dictionary.
 
-A note to those of you who may modify the code --- if you change the above mapping
-between primes and letters, you will need to rebuild your dictionaries. An obvious,
-but not yet implemented improvement to this program would be packaging the 
-dictionary as two pickles, the second one defining the mapping that was 
-used to create it. Something for the next version ....
+The above mapping is optimized for each list of words when the `dictbuilder`
+is used. The resulting dictionary has not only the words and values, but also
+contains the optimum assignment of each letter to a prime number so that
+the resulting values are as small as possible. 
 
 Of course, anagrams differ from the basic perfect cover problem in 
 other material ways. The first is that we are not looking for just
@@ -128,7 +127,8 @@ that stands for a dictionary word has the advantage that it is easy (and
 deterministic) to start
 with the ``smallest'' option, and easy to sort the options by size. Unlike
 Knuth, we never need to choose among options of equal size because the 
-use of prime factors effectively creates a sub-sort on size.
+use of prime factors effectively creates a set that is *strictly* well-ordered
+instead of merely well ordered.
 
 Another difference between covers and anagrams is that within any anagram, several words may map onto the same option. 
 These words are *self-anagrams* ---
@@ -137,7 +137,7 @@ freely use any of the others. For example
 the title of the well known album by Miles Davis, 
 [Live-Evil](https://en.wikipedia.org/wiki/Live-Evil_(Miles_Davis_album)),
 contains a pair of such words. In our assignment of prime numbers to 
-letters, both words map to the integer 25438 (2 * 7 * 23 * 79) along with
+letters, both words map to the integer 25438 (EVIL) -> (2 * 79 * 7 * 23) along with
 the words `veil`, `vile`, and `levi`. What unlikely bedfellows.
 
 ## What is in the Python files?
@@ -147,12 +147,13 @@ implements Algorithm X.
 
 `dictbuilder.py` --- Converts a white-space delimited file of "words" to a 
 pickle of a dict where the keys are integers and the values are tuples of the
-words that map to the key.
+words that map to the key. The output also contains a pickle that represents
+the mapping of letters to prime numbers.
 
 `urdecorators.py` --- Contains the `@trap` decorator to assist with debugging.
 
 `sloppytree.py` --- A general purpose data structure derived from Python's `dict` 
-that creates for a very flexible n-ary tree. 
+that creates a flexible n-ary tree. 
 
 `urlogger.py` --- A wrapper around Python's `logging` module that makes it quite
 a bit easier to use, or at least it is harder to make mistakes.
@@ -168,7 +169,7 @@ Of course, the space being covered grows rapidly as the phrase we are analyzing 
 Accepting Knuth's matrix representation,
 the number of columns in the matrix is equivalent to the number of letters in
 the phrase, and the number of rows is equivalent to the number of words from 
-the dictionary (excepting the live-evil-vile-veil-levi problem described earlier) 
+the dictionary (reduced by the live-evil-vile-veil-levi mapping noted earlier) 
 that can be formed from the letters in phrase. The number of rows
 converges to the number words in the dictionary as the phrase becomes longer 
 and every letter in the alphabet is present. 
@@ -176,7 +177,9 @@ and every letter in the alphabet is present.
 Anagrammar does some pruning with its backtracking, identifying dead ends
 as it goes. Thus, no [terminal](https://en.wikipedia.org/wiki/Terminal_and_nonterminal_symbols) 
 is evaluated more than once. Of course, constantly searching an ever growing pile of 
-dead ends adds *some* overhead. This is called [memoization](https://en.wikipedia.org/wiki/Memoization). 
+dead ends adds *some* overhead. This is called [memoization](https://en.wikipedia.org/wiki/Memoization).
+The pruning could be slightly improved, although how much it could be improved 
+is an open question. 
 
 **NB** *The following explanation conflates the length of words with the value of integer to which
 the words are mapped. Hopefully, the explanation is still clear.*
@@ -185,7 +188,8 @@ The most important pruning technique is this one. Suppose we are looking for
 anagrams for `george flanagin`. Starting with the short words, we find `age long fearing`
 when using `age` as a starting point. When we get to four letter words, we examine 
 `long`. There is no need to look at any word shorter than `long` because all anagrams
-involving `age` have already been found when we used `age` as the starting point. 
+involving `age` have already been found when we used `age` as the starting point. There
+are a few improvements that can be added at the cost of a good bit of code complexity.
 
 ## What do you need to run it?
 
