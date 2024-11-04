@@ -4,7 +4,7 @@ A brute force anagram finder, a teaching tool, and a one gram pun.
 For more information, please consult [Lisa
 Simpson](https://www.youtube.com/watch?v=cj71HnSJaUM).
 
-## How did this program come to be?
+## Anagrams? Seriously?
 
 A number of people with whom I work use the [Internet Anagram
 Server](https://new.wordsmith.org/anagram/), and apparently we are not alone.
@@ -26,7 +26,7 @@ examples in the wild, I usually write my own.
 
 I take this moment to credit and thank my former intern
 [Alina Enikeeva](https://www.linkedin.com/in/alina-enikeeva) for adding several convenience 
-iterators to the underlying data structure, and class of 2025 intern
+iterators to the underlying tree data structure, and class of 2025 intern
 [Skyler He](https://www.linkedin.com/in/yingxinskylerhe/) for her **extensive** testing and development
 of test cases.
 
