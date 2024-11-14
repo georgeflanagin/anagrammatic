@@ -300,6 +300,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         anagrams[original_phrase_value] = find_words(original_phrase_value,
                                                     tuple(sorted(words.keys())))
 
+        sys.stderr.write("\n\nAnalyzing tree\n")
+
     except KeyboardInterrupt as e:
         print("You pressed control C")
         sys.exit(os.EX_OK)
