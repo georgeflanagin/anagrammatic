@@ -255,7 +255,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     # We cannot work without a dictionary, so let's get it first.
     words, prime_map = dictloader(myargs.dictionary)
-    logger.info(f"Dictionary of {len(words)} words.")
+
+    logger.info(f"Beginning: {myargs.phrase=}")
     logger.info(f"{prime_map=}")
 
     # Always be nice. Each level of niceness lowers the priority
@@ -264,7 +265,6 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     os.nice(myargs.nice)
 
     # Squish out the white space.
-    logger.info(f"{myargs.phrase=}")
     text = "".join(myargs.phrase.lower().split())
     # Keep only the letters.
     original_phrase = "".join(_ for _ in text if _ in string.ascii_lowercase)
@@ -280,6 +280,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and
         original_phrase_value % k == 0}
     stats.factors = len(words)
+
     logger.info(f"Dict reduced to {stats.factors} possible words.")
     if not stats.factors:
         logger.error("None of the dict words will work.")
@@ -295,13 +296,13 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # just leave it here for later review. We'll figure out which words
     # correspond to the factors when we return with the anagrams.
     anagrams = SloppyTree()
+
     try:
         sys.stderr.write("Words      Time      Nodes \n\n")
         anagrams[original_phrase_value] = find_words(original_phrase_value,
                                                     tuple(sorted(words.keys())))
 
         sys.stderr.flush()
-        sys.stderr.write("\n\nAnalyzing tree\n")
 
     except KeyboardInterrupt as e:
         print("You pressed control C")
@@ -330,15 +331,17 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     #   We don't care to have each anagram start with the original phrase,
     #   so chop it off with the [1:] slice.
     ###
+    sys.stderr.write("\n\nAnalyzing tree\n")
+    logger.info("Analysis begins.")
     anagrams = [ sorted(_)[:-1] for _ in anagrams.tree_as_table() ]
-    logger.debug(f"2 {anagrams=}")
+    logger.info("sorting complete.")
 
     ###
     # Use groupby to remove duplicates from the (already) now sorted list
     # of anagrams.
     ###
     anagrams = [ list(_)[0] for k, _ in itertools.groupby(sorted(anagrams)) ]
-    logger.debug(f"3 {anagrams=}")
+    logger.info("grouping complete.")
 
     ###
     # Now replace the numbers with the corresponding words
@@ -356,6 +359,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         print(f"{i} :: {line}")
     logger.info(f"{i} anagrams found.")
 
+    logger.info(f"{stats=}")
     print(f"{stats=}")
 
     return sys.exit(os.EX_OK)
