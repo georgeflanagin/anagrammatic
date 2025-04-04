@@ -197,7 +197,7 @@ def find_words(phrase_v:int,
                 else:
                     sys.stderr.write(' ' * 40)
                     sys.stderr.write('\r')
-                    sys.stderr.write(f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:10}\r")
+                    sys.stderr.write(f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:10} {factor:30}\r")
 
 
             residual = phrase_v // factor
@@ -300,6 +300,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         anagrams[original_phrase_value] = find_words(original_phrase_value,
                                                     tuple(sorted(words.keys())))
 
+        sys.stderr.flush()
         sys.stderr.write("\n\nAnalyzing tree\n")
 
     except KeyboardInterrupt as e:
