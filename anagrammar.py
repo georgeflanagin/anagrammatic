@@ -104,15 +104,15 @@ def find_words(phrase_v:int,
     factors:tuple,
     depth:int=0) -> SloppyTree:
     """
-    This is a recursive function to discover the anagrams. It starts by
-    considering the shortest possible word that could be a part of an
-    anagram for the target phrase, and progressively applies the same
-    logic to shorter residuals.
+    This is a recursive function to discover the anagrams. It starts
+    by considering the shortest possible word (i.e., the one of least
+    numeric value) that could be a part of an the target phrase, and
+    progressively applies the same logic to shorter residuals. This
+    logic assures that while looking for anagrams that "start" with a
+    word of greater than the minimum value, we need not consider ones
+    that contain any words of less value.
 
     phrase_v -- the word_value of the string we are finding anagrams for.
-        If it is not a large composite number (i.e., strictly greater than
-        any of the factors), then it cannot be part of an anagram, and
-        this is a dead-end.
 
     factors -- a tuple of integers that correspond to the potential
         components of the anagram.
@@ -122,6 +122,7 @@ def find_words(phrase_v:int,
         the root to the leaf is an anagram. If the leaf is False,
         then this is a dead-end, and the parent of the leaf
         cannot be a part of an anagram.
+
     """
     global num_calls
     num_calls += 1
@@ -129,29 +130,28 @@ def find_words(phrase_v:int,
     global current_root
     global dead_ends
     global seen_roots
+    global show_progress
     global smallest_word
     global stats
 
     # This will be our return value.
     matches = SloppyTree()
-    root = matches[phrase_v]
-
-    # Let's start with the smallest factor.
-    factors = tuple(sorted(prune_dict(phrase_v, factors)))
-
-    # Not sure what we are doing in this function, but this
-    # test prevents strange things happening if we get here
-    # by mistake.
-    if not factors:
-        root = False
-        return
-
-    smallest_factor = factors[0]
 
     # First, test to see if there can be any further factoring
     # to do.
     if phrase_v in dead_ends:
         return matches
+
+
+    root = matches[phrase_v]
+
+    factors = tuple(sorted(prune_dict(phrase_v, factors)))
+    if not factors:
+        root = False
+        return
+
+    # Let's start with the smallest factor.
+    smallest_factor = factors[0]
 
     if smallest_factor*smallest_factor > phrase_v:
         dead_ends.add(phrase_v)
@@ -160,17 +160,34 @@ def find_words(phrase_v:int,
     # There may be something here. Let's look.
     try:
         for factor in factors:
-            stats.tries += 1
 
-            # Tree pruning takes place here in two steps.
-            # At depth == 1, we add this factor to the list of seen factors,
-            #   and set the current_root to the current factor.
-            # if not depth:
-            if depth in (0, 1):
-                stats.nodes += 1
+            stats.nodes += 1
+            ###
+            # Find out if we are at the bottom branches of the tree.
+            # If we are, then set the current_root to this word,
+            # and add it to the seen_roots set.
+            ###
+            if not depth:
                 logger.debug(f"root {factor=}")
                 seen_roots.add(factor)
                 current_root = factor
+
+                # Note that we are not checking the timeout every trip through
+                # the loop --- just each new factor at the root level.
+                elapsed = round(time.time() - start_time, 3)
+                if elapsed > time_out:
+                    sys.stderr.write(f"\n{time_out=} exceeded.\n")
+                    sys.exit(os.EX_CONFIG)
+                else:
+                    if not show_progress:
+                        sys.stderr.write('\r')
+                        sys.stderr.write(' ' * 60)
+
+                    sys.stderr.write(
+                        f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:10} {factor:30}"
+                        )
+                    if show_progress: sys.stderr.write('\n')
+
 
             ###
             # We consider whether we have already seen this
@@ -179,30 +196,14 @@ def find_words(phrase_v:int,
             # same factor might appear twice or more in a word
             # like "cancan."
             ###
-            elif factor in seen_roots and factor - current_root:
+            if factor in seen_roots and not factor == current_root:
                 logger.debug(f"skipping {factor}")
                 continue
-
-            # For clarity.
-            else:
-                pass
-
-            # Note that we are not checking the timeout every trip through
-            # the loop --- just each new factor at the root level.
-            if depth in (0, 1):
-                elapsed = round(time.time() - start_time, 3)
-                if elapsed > time_out:
-                    sys.stderr.write(f"\n{time_out=} exceeded.\n")
-                    sys.exit(os.EX_CONFIG)
-                else:
-                    sys.stderr.write(' ' * 40)
-                    sys.stderr.write('\r')
-                    sys.stderr.write(f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:10} {factor:30}\r")
 
 
             residual = phrase_v // factor
             if residual in factors: # Found one.
-                logger.debug(f"found terminal: {residual}")
+                logger.debug(f"found terminal: {residual=}")
                 root[factor] = residual
 
             elif residual < smallest_factor: # This is a dead-end.
@@ -245,9 +246,9 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     """
     global prime_map
     global tries
+    global smallest_word
     global time_out
     global topline
-    global smallest_word
     global words
 
     # If we have been given a limit on CPU, set it.
@@ -299,9 +300,11 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     try:
         sys.stderr.write("Words      Time      Nodes \n\n")
-        anagrams[original_phrase_value] = find_words(original_phrase_value,
-                                                    tuple(sorted(words.keys())))
+        anagrams[original_phrase_value] = find_words(
+            original_phrase_value, tuple(words.keys()), 0
+            )
 
+        logger.info(f"Considered {num_calls} branches.")
         sys.stderr.flush()
 
     except KeyboardInterrupt as e:
@@ -354,10 +357,10 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         if None in text_gram: continue
         text_anagrams.append(text_gram)
 
-    for i, line in enumerate(text_anagrams):
-        if None in line: continue
-        print(f"{i} :: {line}")
-    logger.info(f"{i} anagrams found.")
+    if not myargs.quiet:
+        for i, line in enumerate(text_anagrams):
+            print(f"{i} :: {line}")
+    logger.info(f"{len(anagrams)} anagrams found.")
 
     logger.info(f"{stats=}")
     print(f"{stats=}")
@@ -381,6 +384,8 @@ if __name__ == "__main__":
         help="Minimum length of any word in the anagram. The default is 3.")
     parser.add_argument('--nice', type=int, choices=range(0, 20), default=7,
         help="Niceness may affect execution time. The default is 7, which is about twice as nice as the average program.")
+    parser.add_argument('-p', '--progress', action='store_true')
+    parser.add_argument('-q', '--quiet', action='store_true')
     parser.add_argument('-t', '--cpu-time', type=float, default=60,
         help="Set a maximum number of CPU seconds for execution.")
     parser.add_argument('-v', '--verbose', type=int, default=35,
@@ -397,6 +402,8 @@ if __name__ == "__main__":
             os.unlink(logfile)
         except:
             pass
+
+    show_progress = myargs.progress
 
     try:
         with open(configfile, 'rb') as f:
