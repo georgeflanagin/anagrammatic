@@ -133,6 +133,7 @@ def find_words(phrase_v:int,
     global show_progress
     global smallest_word
     global stats
+    global words
 
     # This will be our return value.
     matches = SloppyTree()
@@ -184,7 +185,7 @@ def find_words(phrase_v:int,
                         sys.stderr.write(' ' * 60)
 
                     sys.stderr.write(
-                        f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:10} {factor:30}"
+                        f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:12} {factor:25} {words.get(factor)}"
                         )
                     if show_progress: sys.stderr.write('\n')
 
@@ -386,8 +387,8 @@ if __name__ == "__main__":
         help="Niceness may affect execution time. The default is 7, which is about twice as nice as the average program.")
     parser.add_argument('-p', '--progress', action='store_true')
     parser.add_argument('-q', '--quiet', action='store_true')
-    parser.add_argument('-t', '--cpu-time', type=float, default=60,
-        help="Set a maximum number of CPU seconds for execution.")
+    parser.add_argument('-t', '--cpu-time', type=float, default=600,
+        help="Set a maximum number of CPU seconds for execution. Default is 600.")
     parser.add_argument('-v', '--verbose', type=int, default=35,
         help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}. The default is 35, which only logs errors.")
     parser.add_argument('-z', '--zap', action='store_true',
