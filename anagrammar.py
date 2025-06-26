@@ -14,6 +14,7 @@ import itertools
 import logging
 import math
 import multiprocessing
+import pickle
 import string
 import time
 
@@ -371,6 +372,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
 if __name__ == "__main__":
 
+    available_cores = len(os.sched_getaffinity(0))
+
     vm_callable = f"{os.path.basename(__file__)[:-3]}"
     logfile     = f"{vm_callable}.log"
     main        = f"{vm_callable}_main"
@@ -379,6 +382,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="anagrammar",
         description="A brute force anagram finder.")
 
+    parser.add_argument('-c', '--cores', type=int, default=1,
+        choices=range(1, available_cores+1),
+        help="Number of cores to use")
     parser.add_argument('-d', '--dictionary', type=str, default="words",
         help="Name of the dictionary of words, or a pickle of the dictionary.")
     parser.add_argument('-m', '--min-len', type=int, default=3,
