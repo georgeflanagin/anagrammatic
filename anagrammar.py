@@ -238,6 +238,24 @@ def prune_dict(filter:int,
 
 
 @trap
+def split_search(num_splits:int, original_phrase:int, original_dict:tuple) -> tuple:
+    """
+    This generator yields `num_splits` items.
+        Each item yielded contains a tuple of of tuples, ...
+            In which each element is a root node, and the dict to be searched.
+    """
+    sorted_factors = sorted(original_dict)
+    num_factors = len(sorted_factors)
+    bins = [list()]*num_splits
+
+    for i, _ in enumerate(sorted_factors):
+        bins[i % num_splits].append(_, sorted_factors[i+1:])
+
+    for bin in bins:
+        yield bin
+
+
+@trap
 def anagrammar_main(myargs:argparse.Namespace) -> int:
     """
     Let's build the anagram tree.
@@ -299,6 +317,22 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # just leave it here for later review. We'll figure out which words
     # correspond to the factors when we return with the anagrams.
     anagrams = SloppyTree()
+
+    for group in split_search(myargs.cores,
+            original_phrase_value,
+            tuple(words.keys()):
+        pid = os.fork()
+        if pid:
+            pids.add(pid)
+            continue
+
+        anagrams = SloppyTree()
+        for branch in group:
+            anagrams
+
+        ###HERE###
+
+    sys.exit(os.EX_OK)
 
     try:
         sys.stderr.write("Words      Time      Nodes \n\n")
