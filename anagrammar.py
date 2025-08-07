@@ -23,6 +23,7 @@ import time
 ###
 
 from   urdecorators  import trap
+import fileutils
 from   dictbuilder   import dictloader
 from   sloppytree    import SloppyTree
 import urlogger
@@ -316,7 +317,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # Let's reduce the complexities of dragging around the dictionary, and
     # just leave it here for later review. We'll figure out which words
     # correspond to the factors when we return with the anagrams.
-    anagrams = SloppyTree()
+    all_anagrams = SloppyTree()
 
     for group in split_search(myargs.cores,
             original_phrase_value,
@@ -328,7 +329,20 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
         anagrams = SloppyTree()
         for branch in group:
-            anagrams
+            anagrams=find_words(phrase_v:int,
+                factors:tuple,
+                depth:int=0) -> SloppyTree:
+
+            fileutils.append_pickle(anagrams, fname)
+
+    while pids:
+        child_pid, exit_status, usage = os.wait3(0)
+        pids.remove(child_pid)
+
+
+    while tree=fileutils.extract_pickle(fname):
+        k, v = tree.popitem()
+        all_anagrams[k] = v
 
         ###HERE###
 
