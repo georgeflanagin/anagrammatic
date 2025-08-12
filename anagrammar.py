@@ -17,6 +17,7 @@ import multiprocessing
 import pickle
 import string
 import time
+import tempfile
 
 ###
 # Parts of this project.
@@ -43,7 +44,8 @@ __license__ = 'MIT'
 ###
 # Globals.
 ###
-logger = None
+logger=None
+picklefile=None
 
 ###
 # Just for curiosity, I wonder how long these things take.
@@ -245,11 +247,15 @@ def split_search(num_splits:int, original_phrase:int, original_dict:tuple) -> tu
         Each item yielded contains a tuple of of tuples, ...
             In which each element is a root node, and the dict to be searched.
     """
-    sorted_factors = sorted(original_dict)
-    num_factors = len(sorted_factors)
+    def weave(mylist:list, lacing,int) -> list:
+        N=len(mylist)
+        indices = [i for group in range(lacing) for i in range(group, len(mylist), N)]
+        sorted_factors = sorted(mylist)
+        return [ sorted_factors[i] for i in indices ]
+
     bins = [list()]*num_splits
 
-    for i, _ in enumerate(sorted_factors):
+    for i, _ in enumerate(weave):
         bins[i % num_splits].append(_, sorted_factors[i+1:])
 
     for bin in bins:
@@ -271,6 +277,9 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     global time_out
     global topline
     global words
+    global picklefile
+
+    picklefile=tempfile()
 
     # If we have been given a limit on CPU, set it.
     time_out = myargs.cpu_time
@@ -327,48 +336,29 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
             pids.add(pid)
             continue
 
-        anagrams = SloppyTree()
-        for branch in group:
-            anagrams=find_words(phrase_v:int,
-                factors:tuple,
-                depth:int=0) -> SloppyTree:
+        try:
+            anagrams = SloppyTree()
+            for branch in group:
+                anagrams=find_words(phrase_v:int,
+                    factors:tuple,
+                    depth:int=0) -> SloppyTree:
 
-            fileutils.append_pickle(anagrams, fname)
+                fileutils.append_pickle(anagrams, picklefile)
+
+        finally:
+            os._exit(os.EX_OK)
 
     while pids:
         child_pid, exit_status, usage = os.wait3(0)
         pids.remove(child_pid)
 
+    os.lseek(picklefile, os.SEEK_SET, 0)
 
-    while tree=fileutils.extract_pickle(fname):
+    while tree=fileutils.extract_pickle(picklefile):
         k, v = tree.popitem()
         all_anagrams[k] = v
 
         ###HERE###
-
-    sys.exit(os.EX_OK)
-
-    try:
-        sys.stderr.write("Words      Time      Nodes \n\n")
-        anagrams[original_phrase_value] = find_words(
-            original_phrase_value, tuple(words.keys()), 0
-            )
-
-        logger.info(f"Considered {num_calls} branches.")
-        sys.stderr.flush()
-
-    except KeyboardInterrupt as e:
-        print("You pressed control C")
-        sys.exit(os.EX_OK)
-
-    except Exception as e:
-        logger.error(f"Unexpected exception {e=}")
-        raise e from None
-
-    finally:
-        logger.debug(f"1 {anagrams=}")
-
-    stats.dead_ends = len(dead_ends)
 
     ###
     # The anagrams are now in a tree whose root node is our
