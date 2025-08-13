@@ -246,20 +246,23 @@ def split_search(num_splits:int, original_phrase:int, original_dict:tuple) -> tu
     This generator yields `num_splits` items.
         Each item yielded contains a tuple of of tuples, ...
             In which each element is a root node, and the dict to be searched.
-    """
-    def weave(mylist:list, lacing,int) -> list:
-        N=len(mylist)
-        indices = [i for group in range(lacing) for i in range(group, len(mylist), N)]
-        sorted_factors = sorted(mylist)
-        return [ sorted_factors[i] for i in indices ]
 
+    num_splits -- the number of parallel tree operations that we intend to
+        undertake.
+    original_phrase -- a large positive integer that is the product of the
+        prime numbers representing each letter in the phrase.
+    original_dict -- The dict whose keys are positive integers, and whose
+        values are sets of text strings (words) that correspond to the key.
+
+    """
     bins = [list()]*num_splits
 
-    for i, _ in enumerate(weave):
-        bins[i % num_splits].append(_, sorted_factors[i+1:])
+    sorted_factors = sorted(original_dict.keys())
 
-    for bin in bins:
-        yield bin
+    pools = tuple( tuple(i, sorted_factors[i+1:]) for i in range(len(sorted_factors)-1) )
+
+    for i in range(num_splits):
+        yield tuple( pools[j] for j in range(i, len(pools), num_splits) )
 
 
 @trap
