@@ -266,6 +266,44 @@ def split_search(num_splits:int, original_phrase:int, original_dict:tuple) -> tu
 
 
 @trap
+def next_branch(original_phrase:int, original_dict:dict) -> Iterator:
+    """
+    This iterator divides the tree into disjoint branches so that 
+    they can be populated individually, and then recombined
+    after they have all been evaluated.
+    """
+    sorted_factors = sorted(original_dict.keys())
+
+    for index, factor in enumerate(sorted_factors):
+
+        # We know factor divides original phrase, so let's
+        # divide it out now.
+        phrase = original_phrase // factor
+
+        # Separate the list of sorted factors. Note that the slice
+        # notation creates an empty list when we overrun the end 
+        # of the list of factors.
+        smaller_factors = sorted_factors[:index]
+        bigger_factors  = sorted_factors[index:]
+
+        # Remove any smaller factors from phrase if they divide
+        # it evenly. They will be considered in branches that
+        # have been previously yielded as we work out way
+        # through the list of factors from smallest to largest.
+        for smaller_factor in smaller_factors:
+            whole, remainder = divmod(phrase, smaller_factor)
+            if not remainder: 
+                phrase = phrase // d
+
+            # No need to keep dividing if we have reduced the
+            # phrase to zero.
+            if not phrase:
+                yield factor, 0, bigger_factors
+
+        yield factor, phrase, bigger_factors
+
+
+@trap
 def anagrammar_main(myargs:argparse.Namespace) -> int:
     """
     Let's build the anagram tree.
