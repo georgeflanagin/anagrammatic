@@ -295,10 +295,11 @@ def next_branch(original_phrase:int, original_dict:dict) -> Iterator:
             if not remainder: 
                 phrase = phrase // d
 
-            # No need to keep dividing if we have reduced the
-            # phrase to zero.
-            if not phrase:
-                yield factor, 0, bigger_factors
+            # If the factor is greater than the phrase, there
+            # is no way it can divide it even once, so this is
+            # a dead end.
+            if factor > phrase: 
+                continue
 
         yield factor, phrase, bigger_factors
 
