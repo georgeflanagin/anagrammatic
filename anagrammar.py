@@ -241,32 +241,7 @@ def prune_dict(filter:int,
 
 
 @trap
-def split_search(num_splits:int, original_phrase:int, original_dict:tuple) -> tuple:
-    """
-    This generator yields `num_splits` items.
-        Each item yielded contains a tuple of of tuples, ...
-            In which each element is a root node, and the dict to be searched.
-
-    num_splits -- the number of parallel tree operations that we intend to
-        undertake.
-    original_phrase -- a large positive integer that is the product of the
-        prime numbers representing each letter in the phrase.
-    original_dict -- The dict whose keys are positive integers, and whose
-        values are sets of text strings (words) that correspond to the key.
-
-    """
-    bins = [list()]*num_splits
-
-    sorted_factors = sorted(original_dict.keys())
-
-    pools = tuple( tuple(i, sorted_factors[i+1:]) for i in range(len(sorted_factors)-1) )
-
-    for i in range(num_splits):
-        yield tuple( pools[j] for j in range(i, len(pools), num_splits) )
-
-
-@trap
-def next_branch(original_phrase:int, original_dict:dict) -> Iterator:
+def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Iterator:
     """
     This iterator divides the tree into disjoint branches so that 
     they can be populated individually, and then recombined
@@ -293,7 +268,7 @@ def next_branch(original_phrase:int, original_dict:dict) -> Iterator:
         for smaller_factor in smaller_factors:
             whole, remainder = divmod(phrase, smaller_factor)
             if not remainder: 
-                phrase = phrase // d
+                phrase = phrase // smaller_factor
 
             # If the factor is greater than the phrase, there
             # is no way it can divide it even once, so this is
@@ -301,7 +276,7 @@ def next_branch(original_phrase:int, original_dict:dict) -> Iterator:
             if factor > phrase: 
                 continue
 
-        yield factor, phrase, bigger_factors
+        yield factor, phrase, bigger_factors, index % num_cores
 
 
 @trap
@@ -321,7 +296,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     global words
     global picklefile
 
-    picklefile=tempfile()
+    picklefile=tempfile.TemporaryFile()
 
     # If we have been given a limit on CPU, set it.
     time_out = myargs.cpu_time
@@ -370,20 +345,27 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # correspond to the factors when we return with the anagrams.
     all_anagrams = SloppyTree()
 
-    for group in split_search(myargs.cores,
+    for group in next_branch(
             original_phrase_value,
-            tuple(words.keys()):
+            words,
+            myargs.cores):
+
+        logger.info(group)
+
+    sys.exit(os.EX_OK)
+
+    if False:
+
         pid = os.fork()
         if pid:
             pids.add(pid)
-            continue
 
         try:
             anagrams = SloppyTree()
             for branch in group:
-                anagrams=find_words(phrase_v:int,
-                    factors:tuple,
-                    depth:int=0) -> SloppyTree:
+                anagrams=find_words(phrase_v,
+                    factors,
+                    depth)
 
                 fileutils.append_pickle(anagrams, picklefile)
 
@@ -396,7 +378,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     os.lseek(picklefile, os.SEEK_SET, 0)
 
-    while tree=fileutils.extract_pickle(picklefile):
+    while tree:=fileutils.extract_pickle(picklefile):
         k, v = tree.popitem()
         all_anagrams[k] = v
 
