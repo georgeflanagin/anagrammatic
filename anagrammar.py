@@ -270,13 +270,13 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
             if not remainder:
                 phrase = phrase // smaller_factor
 
-            # If the factor is greater than the phrase, there
-            # is no way it can divide it even once, so this is
-            # a dead end.
-            if factor > phrase:
-                continue
+        # If the factor is greater than the phrase, there
+        # is no way it can divide it even once, so this is
+        # a dead end.
+        if factor > phrase:
+            continue
 
-        yield factor, phrase, bigger_factors, index % num_cores
+        yield phrase, bigger_factors, index % num_cores
 
 
 @trap
@@ -345,29 +345,35 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # correspond to the factors when we return with the anagrams.
     all_anagrams = SloppyTree()
 
-    for group in next_branch(
+    partitions=collections.defaultdict(list)
+    for phrase, bigger_factors, assignment in next_branch(
             original_phrase_value,
             words,
-            myargs.cores):
+            myargs.cores
+            ):
 
-        logger.info(group)
+        partitions[assignment].append((phrase, bigger_factors))
 
-    sys.exit(os.EX_OK)
 
-    if False:
+    ###
+    # Look through each partition in a separate process.
+    ###
+    for partition in partitions:
 
         pid = os.fork()
         if pid:
             pids.add(pid)
+            continue
 
         try:
-            anagrams = SloppyTree()
-            for branch in group:
-                anagrams=find_words(phrase_v,
-                    factors,
-                    depth)
+            for phrase_v, factors in partition:
+                anagrams = SloppyTree()
+                for branch in group:
+                    anagrams=find_words(phrase_v,
+                        factors,
+                        depth)
 
-                fileutils.append_pickle(anagrams, picklefile)
+                    fileutils.append_pickle(anagrams, picklefile)
 
         finally:
             os._exit(os.EX_OK)
