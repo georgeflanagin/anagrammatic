@@ -243,7 +243,7 @@ def prune_dict(filter:int,
 @trap
 def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Iterator:
     """
-    This iterator divides the tree into disjoint branches so that 
+    This iterator divides the tree into disjoint branches so that
     they can be populated individually, and then recombined
     after they have all been evaluated.
     """
@@ -256,7 +256,7 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
         phrase = original_phrase // factor
 
         # Separate the list of sorted factors. Note that the slice
-        # notation creates an empty list when we overrun the end 
+        # notation creates an empty list when we overrun the end
         # of the list of factors.
         smaller_factors = sorted_factors[:index]
         bigger_factors  = sorted_factors[index:]
@@ -267,13 +267,13 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
         # through the list of factors from smallest to largest.
         for smaller_factor in smaller_factors:
             whole, remainder = divmod(phrase, smaller_factor)
-            if not remainder: 
+            if not remainder:
                 phrase = phrase // smaller_factor
 
             # If the factor is greater than the phrase, there
             # is no way it can divide it even once, so this is
             # a dead end.
-            if factor > phrase: 
+            if factor > phrase:
                 continue
 
         yield factor, phrase, bigger_factors, index % num_cores
