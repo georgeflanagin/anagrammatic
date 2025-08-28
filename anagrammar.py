@@ -409,6 +409,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     while pids:
         child_pid, exit_status, usage = os.wait3(0)
         pids.remove(child_pid)
+        logger.info(f"{child_pid=} {usage=}")
 
     picklefile.seek(0)
 
