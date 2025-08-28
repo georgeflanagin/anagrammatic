@@ -10,6 +10,7 @@ import os
 import sys
 
 import argparse
+import collections
 import itertools
 import logging
 import math
@@ -130,7 +131,6 @@ def find_words(phrase_v:int,
     """
     global num_calls
     num_calls += 1
-    logger.debug(f"{depth=} , {phrase_v=}")
     global current_root
     global dead_ends
     global seen_roots
@@ -246,6 +246,22 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
     This iterator divides the tree into disjoint branches so that
     they can be populated individually, and then recombined
     after they have all been evaluated.
+
+    arguments:
+
+        original_phrase -- the complete phrase we are trying to anagram.
+        original_dict -- all the words in our dictionary that are possible
+            members of the anagrams.
+        num_cores -- How much do we want to partition the search?
+
+    yields:
+
+        index -- just the ordinal of the group, [1 .. num_cores]
+        factor -- the starting factor being considered.
+        phrase -- the partial phrase that could include "factor" as
+            its least element.
+        bigger_factors -- the group of factors we can try.
+
     """
     sorted_factors = sorted(original_dict.keys())
 
@@ -276,7 +292,7 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
         if factor > phrase:
             continue
 
-        yield phrase, bigger_factors, index % num_cores
+        yield index%num_cores, factor, phrase, bigger_factors
 
 
 @trap
@@ -346,34 +362,46 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     all_anagrams = SloppyTree()
 
     partitions=collections.defaultdict(list)
-    for phrase, bigger_factors, assignment in next_branch(
+    i = 0
+    for assignment, factor, phrase, bigger_factors in next_branch(
             original_phrase_value,
             words,
             myargs.cores
             ):
 
-        partitions[assignment].append((phrase, bigger_factors))
+        logger.debug(f"{assignment=} :: {factor=} :: {phrase=} :: {len(bigger_factors)} to consider.")
+        partitions[assignment].append((factor, phrase, bigger_factors))
+        i += 1
 
+    logger.debug(f"{i} branches to consider.")
 
     ###
-    # Look through each partition in a separate process.
+    # Examine each partition in a separate process.
     ###
-    for partition in partitions:
+    pids=set()
+    for _, partition in partitions.items():
 
         pid = os.fork()
         if pid:
             pids.add(pid)
+            logger.debug(f"Created child process {pid}")
             continue
 
         try:
-            for phrase_v, factors in partition:
-                anagrams = SloppyTree()
-                for branch in group:
-                    anagrams=find_words(phrase_v,
-                        factors,
-                        depth)
+            logger.debug(f"{len(partition)=}")
+            ###
+            # This is the child process, and we will work through
+            # our list of sub-anagrams to consider.
+            ###
+            anagrams = SloppyTree()
+            for base_factor, phrase_v, factors in partition:
+                logger.debug(f"{os.getpid()} -> {base_factor}")
+                anagrams[base_factor] = find_words(phrase_v, factors, 0)
 
-                    fileutils.append_pickle(anagrams, picklefile)
+            fileutils.append_pickle(anagrams, picklefile)
+
+        except Exception as e:
+            logger.error(f"Exception {e=}")
 
         finally:
             os._exit(os.EX_OK)
@@ -382,11 +410,13 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         child_pid, exit_status, usage = os.wait3(0)
         pids.remove(child_pid)
 
-    os.lseek(picklefile, os.SEEK_SET, 0)
+    picklefile.seek(0)
 
-    while tree:=fileutils.extract_pickle(picklefile):
-        k, v = tree.popitem()
-        all_anagrams[k] = v
+    for t in fileutils.extract_pickle(picklefile):
+        for _ in t.tree_as_table():
+            print(_)
+
+    sys.exit(os.EX_OK)
 
         ###HERE###
 
@@ -450,9 +480,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="anagrammar",
         description="A brute force anagram finder.")
 
-    parser.add_argument('-c', '--cores', type=int, default=1,
+    parser.add_argument('-c', '--cores', type=int, default=available_cores//2,
         choices=range(1, available_cores+1),
-        help="Number of cores to use")
+        help=f"Number of cores to use. The default is to use half the available cores, or {available_cores//2} on this computer.")
     parser.add_argument('-d', '--dictionary', type=str, default="words",
         help="Name of the dictionary of words, or a pickle of the dictionary.")
     parser.add_argument('-m', '--min-len', type=int, default=3,
