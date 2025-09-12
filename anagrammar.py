@@ -318,6 +318,10 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     time_out = myargs.cpu_time
 
     # We cannot work without a dictionary, so let's get it first.
+    # words -- a dict where the keys are numbers and the values 
+    #          are tuples of words.
+    # prime_map -- a dict mapping letters to their representation
+    #          as primes. 
     words, prime_map = dictloader(myargs.dictionary)
 
     logger.info(f"Beginning: {myargs.phrase=}")
@@ -325,27 +329,32 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     # Always be nice. Each level of niceness lowers the priority
     # by 10%, so this will roughly cut the CPU proportion to about 1/2
-    # of what it was.
+    # of what it was if the default niceness is used.
     os.nice(myargs.nice)
 
-    # Squish out the white space.
+    # Squish out the white space from the original phrase.
     text = "".join(myargs.phrase.lower().split())
+
     # Keep only the letters.
     original_phrase = "".join(_ for _ in text if _ in string.ascii_lowercase)
+
     # And take note of the integer to which the phrase corresponds.
     original_phrase_value = word_value(original_phrase)
 
+    # When stripping the dictionary, we want to eliminate words
+    # whose length is too short to be 'fun'.
     min_len  = myargs.min_len
 
     # The only words we need to consider are the ones that divide
     # the target phrase evenly. This operation greatly reduces
     # the size of the dictionary.
     logger.info(f"Loaded dict has {len(words)} words.")
+
     words = {k:v for k, v in words.items() if len(v[0]) >= myargs.min_len and
         original_phrase_value % k == 0}
     stats.factors = len(words)
-
     logger.info(f"Dict reduced to {stats.factors} possible words.")
+
     if not stats.factors:
         logger.error("None of the dict words will work.")
         return os.EX_DATAERR
@@ -356,20 +365,35 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     logger.debug(f"{smallest_word=}")
     logger.debug(f"{largest_word=}")
 
-    # Let's reduce the complexities of dragging around the dictionary, and
-    # just leave it here for later review. We'll figure out which words
-    # correspond to the factors when we return with the anagrams.
-    all_anagrams = SloppyTree()
+    all_anagrams = []
 
+    ###
+    # The following is a bit obtuse. For parallel processing, we want
+    # to divide the factors into disjoint groups, and partition the
+    # groups so that each assigned processor gets a fair apportionment.
+    ###
     partitions=collections.defaultdict(list)
     i = 0
+    
+    # assignment -- an ordinal in the range [0 .. cores-1]. IOW,
+    #     the partition assignment.
+    # factor -- the least factor in the group.
+    # phrase -- this is the part of the original phrase that 
+    #     contains no factors smaller than `factor`.
+    # bigger_factors -- a collection of all the factors larger than
+    #     `factor`.
     for assignment, factor, phrase, bigger_factors in next_branch(
             original_phrase_value,
             words,
             myargs.cores
             ):
 
-        logger.debug(f"{assignment=} :: {factor=} :: {phrase=} :: {len(bigger_factors)} to consider.")
+        logger.debug(f"{assignment} :: {factor=} :: {phrase=} :: {len(bigger_factors)} to consider.")
+        
+        # The idea behind this next statement is to somewhat "load 
+        # balance" the partitions, so that each parition will start
+        # with a smaller factor, and then have progressively larger
+        # ones.
         partitions[assignment].append((factor, phrase, bigger_factors))
         i += 1
 
@@ -384,68 +408,40 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         pid = os.fork()
         if pid:
             pids.add(pid)
-            logger.debug(f"Created child process {pid}")
+            logger.info(f"Created child process {pid} to consider {len(partition)} branches.")
             continue
 
         try:
-            logger.debug(f"{len(partition)=}")
             ###
             # This is the child process, and we will work through
             # our list of sub-anagrams to consider.
             ###
             anagrams = SloppyTree()
             for base_factor, phrase_v, factors in partition:
-                logger.debug(f"{os.getpid()} -> {base_factor}")
+                logger.debug(f"{base_factor}")
                 anagrams[base_factor] = find_words(phrase_v, factors, 0)
 
             fileutils.append_pickle(anagrams, picklefile)
 
         except Exception as e:
+            # Noting to do but record it.
             logger.error(f"Exception {e=}")
 
         finally:
             os._exit(os.EX_OK)
 
+    # Back in the parent process, we watch the children work.
     while pids:
         child_pid, exit_status, usage = os.wait3(0)
         pids.remove(child_pid)
         logger.info(f"{child_pid=} {usage=}")
 
+    # Rewind the pickle file that the children have written.
     picklefile.seek(0)
 
     for t in fileutils.extract_pickle(picklefile):
         for _ in t.tree_as_table():
-            print(_)
-
-    sys.exit(os.EX_OK)
-
-        ###HERE###
-
-    ###
-    # The anagrams are now in a tree whose root node is our
-    # original phrase, and whose branches represent the anagrams.
-    # Each path to a leaf is an anagram.
-    #
-    # SloppyTree.tree_as_table() returns each path as a tuple.
-    # We need to sort each path so that we eliminate unintended
-    # duplicates of the forms (a,b,c) and (a,c,b), and then
-    # sort the sorted tuples.
-    #
-    # Explanation of the next line:
-    #   We don't care to have each anagram start with the original phrase,
-    #   so chop it off with the [1:] slice.
-    ###
-    sys.stderr.write("\n\nAnalyzing tree\n")
-    logger.info("Analysis begins.")
-    anagrams = [ sorted(_)[:-1] for _ in anagrams.tree_as_table() ]
-    logger.info("sorting complete.")
-
-    ###
-    # Use groupby to remove duplicates from the (already) now sorted list
-    # of anagrams.
-    ###
-    anagrams = [ list(_)[0] for k, _ in itertools.groupby(sorted(anagrams)) ]
-    logger.info("grouping complete.")
+            all_anagrams.append(_)
 
     ###
     # Now replace the numbers with the corresponding words
@@ -453,18 +449,13 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     # None if this path is a dead-end.
     ###
     text_anagrams = []
-    for gram in anagrams:
-        text_gram = [ words.get(_) for _ in gram ]
-        if None in text_gram: continue
-        text_anagrams.append(text_gram)
+    for gram in all_anagrams:
+        text_anagrams.append(tuple( words.get(_) for _ in gram ))
 
     if not myargs.quiet:
         for i, line in enumerate(text_anagrams):
             print(f"{i} :: {line}")
     logger.info(f"{len(anagrams)} anagrams found.")
-
-    logger.info(f"{stats=}")
-    print(f"{stats=}")
 
     return sys.exit(os.EX_OK)
 
@@ -484,23 +475,31 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--cores', type=int, default=available_cores//2,
         choices=range(1, available_cores+1),
         help=f"Number of cores to use. The default is to use half the available cores, or {available_cores//2} on this computer.")
+
     parser.add_argument('-d', '--dictionary', type=str, default="words",
         help="Name of the dictionary of words, or a pickle of the dictionary.")
+
     parser.add_argument('-m', '--min-len', type=int, default=3,
         help="Minimum length of any word in the anagram. The default is 3.")
+
     parser.add_argument('--nice', type=int, choices=range(0, 20), default=7,
         help="Niceness may affect execution time. The default is 7, which is about twice as nice as the average program.")
+
     parser.add_argument('-p', '--progress', action='store_true')
+
     parser.add_argument('-q', '--quiet', action='store_true')
-    parser.add_argument('-t', '--cpu-time', type=float, default=600,
-        help="Set a maximum number of CPU seconds for execution. Default is 600.")
+
+    parser.add_argument('-t', '--cpu-time', type=float, default=60,
+        help="Set a maximum number of CPU seconds for execution. Default is 60.")
+
     parser.add_argument('-v', '--verbose', type=int, default=35,
         help=f"Set the logging level on a scale from {logging.DEBUG} to {logging.CRITICAL}. The default is 35, which only logs errors.")
+
     parser.add_argument('-z', '--zap', action='store_true',
         help="If set, remove old logfile[s].")
 
     parser.add_argument('phrase', type=str,
-        help="The phrase. If it contains spaces, it must be in quotes.")
+        help="The phrase. If it contains spaces, it must be in quotes (but the spaces don't count toward an anagram).")
 
     myargs = parser.parse_args()
     if myargs.zap:
