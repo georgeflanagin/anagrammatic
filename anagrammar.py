@@ -244,7 +244,7 @@ def prune_dict(filter:int,
 def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Iterator:
     """
     This iterator divides the tree into disjoint branches so that
-    they can be populated individually, and then recombined
+    they can be populated individually and then recombined
     after they have all been evaluated.
 
     arguments:
@@ -290,6 +290,7 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
         # is no way it can divide it even once, so this is
         # a dead end.
         if factor > phrase:
+            logger.debug(f"pruned branch starting with {factor}")
             continue
 
         yield index%num_cores, factor, phrase, bigger_factors
@@ -318,10 +319,10 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     time_out = myargs.cpu_time
 
     # We cannot work without a dictionary, so let's get it first.
-    # words -- a dict where the keys are numbers and the values 
+    # words -- a dict where the keys are numbers and the values
     #          are tuples of words.
     # prime_map -- a dict mapping letters to their representation
-    #          as primes. 
+    #          as primes.
     words, prime_map = dictloader(myargs.dictionary)
 
     logger.info(f"Beginning: {myargs.phrase=}")
@@ -374,11 +375,11 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
     ###
     partitions=collections.defaultdict(list)
     i = 0
-    
+
     # assignment -- an ordinal in the range [0 .. cores-1]. IOW,
     #     the partition assignment.
     # factor -- the least factor in the group.
-    # phrase -- this is the part of the original phrase that 
+    # phrase -- this is the part of the original phrase that
     #     contains no factors smaller than `factor`.
     # bigger_factors -- a collection of all the factors larger than
     #     `factor`.
@@ -389,8 +390,8 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
             ):
 
         logger.debug(f"{assignment} :: {factor=} :: {phrase=} :: {len(bigger_factors)} to consider.")
-        
-        # The idea behind this next statement is to somewhat "load 
+
+        # The idea behind this next statement is to somewhat "load
         # balance" the partitions, so that each parition will start
         # with a smaller factor, and then have progressively larger
         # ones.
@@ -418,7 +419,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
             ###
             anagrams = SloppyTree()
             for base_factor, phrase_v, factors in partition:
-                logger.debug(f"{base_factor}")
+                logger.debug(f"Considering branch {base_factor}")
                 anagrams[base_factor] = find_words(phrase_v, factors, 0)
 
             fileutils.append_pickle(anagrams, picklefile)
@@ -454,6 +455,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
 
     if not myargs.quiet:
         for i, line in enumerate(text_anagrams):
+            logger.debug(f"{i} : {line}")
             print(f"{i} :: {line}")
     logger.info(f"{len(anagrams)} anagrams found.")
 
