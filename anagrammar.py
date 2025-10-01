@@ -188,10 +188,9 @@ def find_words(phrase_v:int,
                         sys.stderr.write('\r')
                         sys.stderr.write(' ' * 60)
 
-                    sys.stderr.write(
+                    logger.debug(
                         f"{len(seen_roots):5} {elapsed:10.3f} {num_calls:12} {factor:25} {words.get(factor)}"
                         )
-                    if show_progress: sys.stderr.write('\n')
 
 
             ###
@@ -274,8 +273,7 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
         # Separate the list of sorted factors. Note that the slice
         # notation creates an empty list when we overrun the end
         # of the list of factors.
-        smaller_factors = sorted_factors[:index]
-        bigger_factors  = sorted_factors[index:]
+        smaller_factors, bigger_factors = sorted_factors[:index] , sorted_factors[index+1:]
 
         # Remove any smaller factors from phrase if they divide
         # it evenly. They will be considered in branches that
@@ -290,7 +288,7 @@ def next_branch(original_phrase:int, original_dict:dict, num_cores:int=1) -> Ite
         # is no way it can divide it even once, so this is
         # a dead end.
         if factor > phrase:
-            logger.debug(f"pruned branch starting with {factor}")
+            logger.info(f"pruned branch starting with {factor}")
             continue
 
         yield index%num_cores, factor, phrase, bigger_factors
@@ -457,7 +455,7 @@ def anagrammar_main(myargs:argparse.Namespace) -> int:
         for i, line in enumerate(text_anagrams):
             logger.debug(f"{i} : {line}")
             print(f"{i} :: {line}")
-    logger.info(f"{len(anagrams)} anagrams found.")
+    logger.info(f"{len(all_anagrams)} anagrams found.")
 
     return sys.exit(os.EX_OK)
 
